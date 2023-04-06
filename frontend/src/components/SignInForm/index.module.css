@@ -1,0 +1,36 @@
+.signin-form-container {
+    margin: 100px auto;
+    width: 50%;
+    border: 1px solid var(--welldone-palette-borders);
+    padding: 40px;
+    border-radius: var(--welldone-shape-borderRadius);
+    max-width: 550px;
+}
+
+.signin-form-title > h3 {
+    letter-spacing: 2px;
+}
+
+.signin-form-icons-container {
+    display: flex;
+    align-items: center;
+}
+
+.signin-form-icons-container svg {
+    max-width: 28px;
+    margin: 0 5px;    
+}
+
+.signin-form-social-media {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.signin-form-social-media > p {
+    font-size: 14px;
+}
+
+.sign-in-error-container {
+    color: var(--welldone-palette-error-main);
+}

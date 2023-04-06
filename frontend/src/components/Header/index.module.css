@@ -1,0 +1,10 @@
+.search-container {
+  position: relative;
+  border-radius: var(--welldone-shape-borderRadius);
+  background-color: var(--welldone-palette-commonWhiteAlpha15);
+  width: 100%;
+}
+
+.search-container:hover {
+  background-color: var(--welldone-palette-commonWhiteAlpha25);
+}
