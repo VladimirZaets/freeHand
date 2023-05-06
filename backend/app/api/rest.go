@@ -89,7 +89,8 @@ func (s *Rest) routes() chi.Router {
 	})
 	router.Use(corsMiddleware.Handler)
 	authHandler, _ := s.Authenticator.Handlers()
-	authMiddleware := s.Authenticator.Middleware()
+	accountCtrl := NewAccountCtrl(s.Authenticator)
+	//authMiddleware := s.Authenticator.Middleware()
 
 	router.Route("/api/v1", func(rapi chi.Router) {
 		rapi.Group(func(ropen chi.Router) {
@@ -100,9 +101,8 @@ func (s *Rest) routes() chi.Router {
 		rapi.Group(func(ropen chi.Router) {
 			ropen.Use(middleware.Timeout(30 * time.Second))
 			ropen.Use(tollbooth_chi.LimitHandler(tollbooth.NewLimiter(10, nil)))
-			ropen.Use(authMiddleware.Auth, middleware.NoCache)
-			ropen.Get("/user", getUserInfo)
-			ropen.Get("/account/signin/social/options", getSocialMediaLoginOptionsCtrl)
+			//ropen.Use(authMiddleware.Auth, middleware.NoCache)
+			ropen.Get("/user", accountCtrl.getUserInfo)
 		})
 	})
 

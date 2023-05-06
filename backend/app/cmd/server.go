@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/VladimirZaets/welldone/backend/app/api"
+	"github.com/VladimirZaets/freehands/backend/app/api"
 	"github.com/go-pkgz/auth"
 	"github.com/go-pkgz/auth/avatar"
 	"github.com/go-pkgz/auth/provider"
@@ -17,13 +17,16 @@ import (
 )
 
 type AuthGroup struct {
-	CID  string `long:"cid" env:"CID" description:"OAuth client ID"`
-	CSEC string `long:"csec" env:"CSEC" description:"OAuth client secret"`
+	CID        string            `long:"cid" env:"CID" description:"OAuth client ID"`
+	CSEC       string            `long:"csec" env:"CSEC" description:"OAuth client secret"`
+	Attributes map[string]string `long:"attributes" env:"ATTRIBUTES" description:"OAuth attributes" env-delim:","`
 }
 
 type ServerCommand struct {
 	Port         int      `long:"port" env:"APP_PORT" default:"8080" description:"port"`
 	Address      string   `long:"address" env:"APP_ADDRESS" default:"" description:"listening address"`
+	APIUrl       string   `long:"api-url" env:"API_URL" required:"true" description:"url to api"`
+	ENV          string   `long:"env" env:"ENV" default:"dev" description:"environment"`
 	AllowedHosts []string `long:"allowed-hosts" env:"ALLOWED_HOSTS" description:"limit hosts/sources allowed " env-delim:","`
 	Auth         struct {
 		TTL struct {
@@ -84,12 +87,9 @@ func (s *ServerCommand) newServerApp(ctx context.Context) (*serverApp, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to make authenticator: %w", err)
 	}
-
 	srv := &api.Rest{
-		//DataService: dataService,
 		Authenticator: authenticator,
-		//SSLConfig:     sslConfig,
-		AllowedHosts: s.AllowedHosts,
+		AllowedHosts:  s.AllowedHosts,
 	}
 
 	return &serverApp{
@@ -102,8 +102,8 @@ func (s *ServerCommand) newServerApp(ctx context.Context) (*serverApp, error) {
 
 func (s *ServerCommand) getAuthenticator() *auth.Service {
 	return auth.NewService(auth.Opts{
-		URL:            "http://127.0.0.1:8080/api/v1",
-		Issuer:         "freehand",
+		URL:            s.APIUrl,
+		Issuer:         "freehands",
 		SecureCookies:  true,
 		TokenDuration:  time.Minute * 5,
 		CookieDuration: time.Hour * 24,
@@ -112,13 +112,23 @@ func (s *ServerCommand) getAuthenticator() *auth.Service {
 			log.Printf("aud", aud)
 			return "secret", nil
 		}),
-		AvatarStore: avatar.NewLocalFS("/tmp"),
+		AvatarStore: avatar.NewNoOp(),
 		ClaimsUpd: token.ClaimsUpdFunc(func(c token.Claims) token.Claims { // set attributes, on new token or refresh
 			return c
 		}),
-		//JWTQuery: "jwt", // change default from "token" as it used for deleteme
-		Logger: log.Default(),
+		JWTCookieDomain: s.getJwtCookieDomain(),
+		Logger:          log.Default(),
 	})
+}
+
+func (s *ServerCommand) getJwtCookieDomain() string {
+	var jwtCookieDomain string
+	if s.ENV == "prod" {
+		jwtCookieDomain = ".freehandsnow.com"
+	} else {
+		jwtCookieDomain = "localhost"
+	}
+	return jwtCookieDomain
 }
 
 func (s *ServerCommand) addAuthProviders(authenticator *auth.Service) error {
@@ -129,7 +139,11 @@ func (s *ServerCommand) addAuthProviders(authenticator *auth.Service) error {
 		providersCount++
 	}
 	if s.Auth.Github.CID != "" && s.Auth.Github.CSEC != "" {
-		authenticator.AddProvider("github", s.Auth.Github.CID, s.Auth.Github.CSEC)
+		authenticator.AddProviderWithUserAttributes(
+			"github",
+			s.Auth.Github.CID,
+			s.Auth.Github.CSEC,
+			s.Auth.Github.Attributes)
 		providersCount++
 	}
 	if s.Auth.Facebook.CID != "" && s.Auth.Facebook.CSEC != "" {

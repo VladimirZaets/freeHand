@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/jessevdk/go-flags"
 	"os"
 
-	"github.com/VladimirZaets/welldone/backend/app/cmd"
+	"github.com/VladimirZaets/freehands/backend/app/cmd"
 	log "github.com/go-pkgz/lgr"
-	"github.com/jessevdk/go-flags"
 )
 
 type Opts struct {
