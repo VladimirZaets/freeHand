@@ -1,9 +1,9 @@
 .signin-form-container {
     margin: 100px auto;
     width: 80%;
-    border: 1px solid var(--welldone-palette-borders);
+    border: 1px solid var(--fh-palette-borders);
     padding: 40px;
-    border-radius: var(--welldone-shape-borderRadius);
+    border-radius: var(--fh-shape-borderRadius);
     max-width: 850px;
 }
 
@@ -32,5 +32,5 @@
 }
 
 .sign-in-error-container {
-    color: var(--welldone-palette-error-main);
+    color: var(--fh-palette-error-main);
 }

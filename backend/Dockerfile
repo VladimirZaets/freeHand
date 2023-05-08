@@ -10,12 +10,12 @@ RUN go mod download
 
 COPY . ./
 
-LABEL org.opencontainers.image.authors="VZaiets <vzaets.dev@gmail.com>" \
-      org.opencontainers.image.description="freeHands backend" \
+LABEL org.opencontainers.image.authors="vzaiets <vzaets.dev@gmail.com>" \
+      org.opencontainers.image.description="freehands api" \
       org.opencontainers.image.licenses="MIT" \
-      org.opencontainers.image.source="https://github.com/VladimirZaets/freehand.git" \
-      org.opencontainers.image.title="freeHand" \
-      org.opencontainers.image.url="https://freeHand.com/" \
+      org.opencontainers.image.source="https://github.com/VladimirZaets/freehands.git" \
+      org.opencontainers.image.title="freehands" \
+      org.opencontainers.image.url="https://freehands.com/" \
       org.opencontainers.image.revision="${GITHUB_SHA}"
 
 EXPOSE 8080
@@ -23,4 +23,4 @@ HEALTHCHECK --interval=30s --timeout=3s CMD curl --fail http://localhost:8080/pi
 
 RUN go build -o freehands ./app
 
-CMD [ "./freehands", "server", "--debug"]
+CMD [ "./freehands", "server"]

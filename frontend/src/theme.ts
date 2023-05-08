@@ -10,7 +10,7 @@ declare module '@mui/material/styles' {
 
 
 const theme = extendTheme({
-  cssVarPrefix: 'welldone',
+  cssVarPrefix: 'fh',
   colorSchemes: {
     light: {
       palette: {

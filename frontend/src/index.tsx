@@ -28,7 +28,10 @@ root.render(
           <InitialDataLoader/>
           <LoadingBackdrop/>
           <Routes>
-            <Route path="/" element={<div>Hello world</div>} />
+            <Route path="/" element={<div>
+              <a href={`${process.env.REACT_APP_API_SERVICE}/auth/github/login?site=${process.env.REACT_APP_SITE}&from=${process.env.REACT_APP_FRONTEND_SERVICE}`} onClick={() => window.close()}>github</a>
+              <br></br>
+            </div>} />
             <Route path="/*" element={<BaseLayoutRouter />} />
           </Routes>
         </LocalizationProvider>

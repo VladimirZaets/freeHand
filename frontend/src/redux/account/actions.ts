@@ -4,10 +4,11 @@ import { formatResponseError } from '../error'
 import axios, { AxiosError } from 'axios';
 
 export const getUserByToken = createAsyncThunk(
-  'account/getUserByToken',
+  'api/v1/account/getUserByToken',
   async () => {
-    const response = await fetch(`${process.env.REACT_APP_BACKEND_SERVICE}/user`, {
+    const response = await fetch(`${process.env.REACT_APP_API_SERVICE}/user`, {
       method: "GET",
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       }
@@ -19,7 +20,7 @@ export const getUserByToken = createAsyncThunk(
 export const getSocialSigninOptions = createAsyncThunk(
   'account/getSocialSigninOptions',
   async () => {
-    const response = await fetch(`${process.env.REACT_APP_BACKEND_SERVICE}/account/signin/social/options`, {
+    const response = await fetch(`${process.env.REACT_APP_API_SERVICE}/account/signin/social/options`, {
       method: "GET",
       headers: {
         'Content-Type': 'application/json',
@@ -34,7 +35,7 @@ export const signin = createAsyncThunk(
   async (data: SigninParams, thunkAPI) => {
     const { rejectWithValue } = thunkAPI;    
     return axios.post(
-      `${process.env.REACT_APP_BACKEND_SERVICE}/account/signin`,
+      `${process.env.REACT_APP_API_SERVICE}/account/signin`,
       JSON.stringify(data),
       {
         headers: {
