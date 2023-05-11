@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS api.addresses;
+DROP TABLE IF EXISTS api.users;
