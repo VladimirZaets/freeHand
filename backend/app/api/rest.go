@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/VladimirZaets/freehands/backend/app/store"
 	"net/http"
 	"sync"
 	"time"
@@ -17,6 +19,21 @@ import (
 	R "github.com/go-pkgz/rest"
 )
 
+type ctrl struct {
+	AccountCtrl *AccountCtrl
+}
+
+type RestParams struct {
+	httpServer       *http.Server
+	httpsServer      *http.Server
+	AllowedHosts     []string
+	UpdateLimiter    float64
+	DisableSignature bool
+	Version          string
+	Authenticator    *auth.Service
+	DataService      *store.DataStore
+}
+
 type Rest struct {
 	httpServer       *http.Server
 	httpsServer      *http.Server
@@ -26,6 +43,27 @@ type Rest struct {
 	DisableSignature bool
 	Version          string
 	Authenticator    *auth.Service
+	DataService      *store.DataStore
+	Ctrl             *ctrl
+	AuthHandlers     *Handlers
+}
+
+func NewRest(params RestParams) *Rest {
+	ctrl := &ctrl{
+		AccountCtrl: NewAccountCtrl(params.Authenticator, params.DataService),
+	}
+	return &Rest{
+		AllowedHosts:     params.AllowedHosts,
+		UpdateLimiter:    params.UpdateLimiter,
+		DisableSignature: params.DisableSignature,
+		Version:          params.Version,
+		Authenticator:    params.Authenticator,
+		DataService:      params.DataService,
+		Ctrl:             ctrl,
+		httpServer:       params.httpServer,
+		httpsServer:      params.httpsServer,
+		AuthHandlers:     NewHandlers(params.DataService),
+	}
 }
 
 func (s *Rest) Run(address string, port int) {
@@ -89,7 +127,6 @@ func (s *Rest) routes() chi.Router {
 	})
 	router.Use(corsMiddleware.Handler)
 	authHandler, _ := s.Authenticator.Handlers()
-	accountCtrl := NewAccountCtrl(s.Authenticator)
 	//authMiddleware := s.Authenticator.Middleware()
 
 	router.Route("/api/v1", func(rapi chi.Router) {
@@ -102,7 +139,7 @@ func (s *Rest) routes() chi.Router {
 			ropen.Use(middleware.Timeout(30 * time.Second))
 			ropen.Use(tollbooth_chi.LimitHandler(tollbooth.NewLimiter(10, nil)))
 			//ropen.Use(authMiddleware.Auth, middleware.NoCache)
-			ropen.Get("/user", accountCtrl.getUserInfo)
+			ropen.Get("/user", s.Ctrl.AccountCtrl.getUserInfo)
 		})
 	})
 
@@ -115,4 +152,17 @@ func (s *Rest) updateLimiter() float64 {
 		lmt = s.UpdateLimiter
 	}
 	return lmt
+}
+
+func RespJSON(w http.ResponseWriter, code int, data map[string]interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	jsonResp, err := json.Marshal(data)
+	if err != nil {
+		log.Printf("[ERROR] can't marshal response, %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":"internal server error"}`))
+		return
+	}
+	w.Write(jsonResp)
 }

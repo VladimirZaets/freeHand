@@ -4,7 +4,6 @@ import { getUserByToken, getSocialSigninOptions } from "../../redux/account/acti
 const InitialDataLoader = () => {
   const dispatch = useAppDispatch()
   dispatch(getUserByToken())
-  dispatch(getSocialSigninOptions())
 
   return null
 }

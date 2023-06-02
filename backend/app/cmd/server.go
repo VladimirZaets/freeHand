@@ -3,6 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/VladimirZaets/freehands/backend/app/store"
+	"github.com/go-pkgz/auth/provider"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,7 +13,6 @@ import (
 	"github.com/VladimirZaets/freehands/backend/app/api"
 	"github.com/go-pkgz/auth"
 	"github.com/go-pkgz/auth/avatar"
-	"github.com/go-pkgz/auth/provider"
 	"github.com/go-pkgz/auth/token"
 	log "github.com/go-pkgz/lgr"
 )
@@ -20,6 +21,12 @@ type AuthGroup struct {
 	CID        string            `long:"cid" env:"CID" description:"OAuth client ID"`
 	CSEC       string            `long:"csec" env:"CSEC" description:"OAuth client secret"`
 	Attributes map[string]string `long:"attributes" env:"ATTRIBUTES" description:"OAuth attributes" env-delim:","`
+}
+
+type DataStore struct {
+	Host     string `long:"host" env:"HOST" description:"datasource host"`
+	Username string `long:"username" env:"USERNAME" description:"datasource username"`
+	Password string `long:"password" env:"PASSWORD" description:"datasource password"`
 }
 
 type ServerCommand struct {
@@ -37,6 +44,7 @@ type ServerCommand struct {
 		Github   AuthGroup `group:"github" namespace:"github" env-namespace:"GITHUB" description:"Github OAuth"`
 		Facebook AuthGroup `group:"facebook" namespace:"facebook" env-namespace:"FACEBOOK" description:"Facebook OAuth"`
 	} `group:"auth" namespace:"auth" env-namespace:"AUTH"`
+	DataStore DataStore `group:"datastore" namespace:"datastore" env-namespace:"DATASTORE"`
 }
 
 func (s *ServerCommand) Execute(_ []string) error {
@@ -65,6 +73,7 @@ func (s *ServerCommand) Execute(_ []string) error {
 	}()
 
 	app, err := s.newServerApp(ctx)
+
 	if err != nil {
 		log.Printf("[PANIC] failed to setup application, %+v", err)
 		return err
@@ -82,14 +91,26 @@ func (s *ServerCommand) newServerApp(ctx context.Context) (*serverApp, error) {
 	log.Printf("[INFO] start server on port %s:%d", s.Address, s.Port)
 
 	authenticator := s.getAuthenticator()
-	err := s.addAuthProviders(authenticator)
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to make authenticator: %w", err)
-	}
-	srv := &api.Rest{
+	dataService := store.NewDataStore(store.DataStoreParams{
+		Host:       s.DataStore.Host,
+		Username:   s.DataStore.Username,
+		Password:   s.DataStore.Password,
+		DBName:     "freehands",
+		SearchPath: "api",
+		Driver:     "postgres",
+		SSLMode:    "disable",
+	})
+
+	srv := api.NewRest(api.RestParams{
 		Authenticator: authenticator,
 		AllowedHosts:  s.AllowedHosts,
+		DataService:   dataService,
+	})
+
+	err := s.addAuthProviders(authenticator, srv)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make authenticator: %w", err)
 	}
 
 	return &serverApp{
@@ -97,6 +118,7 @@ func (s *ServerCommand) newServerApp(ctx context.Context) (*serverApp, error) {
 		rest:          srv,
 		terminated:    make(chan struct{}),
 		authenticator: authenticator,
+		dataService:   dataService,
 	}, nil
 }
 
@@ -131,21 +153,31 @@ func (s *ServerCommand) getJwtCookieDomain() string {
 	return jwtCookieDomain
 }
 
-func (s *ServerCommand) addAuthProviders(authenticator *auth.Service) error {
+func (s *ServerCommand) addAuthProviders(authenticator *auth.Service, rest *api.Rest) error {
 	providersCount := 0
+
+	authenticator.AddCustomHandler(api.LocalHandler{
+		L:            log.Default(),
+		ProviderName: "local",
+		TokenService: authenticator.TokenService(),
+		Issuer:       "freehands",
+		AvatarSaver:  authenticator.AvatarProxy(),
+		AuthHook:     rest.AuthHandlers.GetLocalAuthUserHandler(),
+	})
 
 	if s.Auth.Google.CID != "" && s.Auth.Google.CSEC != "" {
 		authenticator.AddProvider("google", s.Auth.Google.CID, s.Auth.Google.CSEC)
 		providersCount++
 	}
 	if s.Auth.Github.CID != "" && s.Auth.Github.CSEC != "" {
-		authenticator.AddProviderWithUserAttributes(
+		authenticator.AddCustomProvider(
 			"github",
-			s.Auth.Github.CID,
-			s.Auth.Github.CSEC,
-			s.Auth.Github.Attributes)
+			auth.Client{Cid: s.Auth.Github.CID, Csecret: s.Auth.Github.CSEC},
+			api.NewGithubProvider(s.Auth.Github.Attributes, rest.AuthHandlers.GetGithubAuthUserHandler()),
+		)
 		providersCount++
 	}
+
 	if s.Auth.Facebook.CID != "" && s.Auth.Facebook.CSEC != "" {
 		authenticator.AddProvider("facebook", s.Auth.Facebook.CID, s.Auth.Facebook.CSEC)
 		providersCount++
@@ -174,7 +206,7 @@ type serverApp struct {
 	rest          *api.Rest
 	terminated    chan struct{}
 	authenticator *auth.Service
-	//dataService *service.DataStore
+	dataService   *store.DataStore
 }
 
 func (a *serverApp) run(ctx context.Context) error {
@@ -185,6 +217,10 @@ func (a *serverApp) run(ctx context.Context) error {
 		a.rest.Shutdown()
 	}()
 
+	err := a.dataService.Connect()
+	if err != nil {
+		close(a.terminated)
+	}
 	a.rest.Run(a.Address, a.Port)
 
 	close(a.terminated)

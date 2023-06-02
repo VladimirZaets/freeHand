@@ -16,13 +16,17 @@ export type SigninParams = {
     keepSignin?: boolean
 }
 
+export type CreatePasswordParams = {
+    password: string
+}
+
 export type SignupParams = {
     firstname: string,
     lastname: string,
     email: string,
     password: string
     primaryAccountType: string
-    dob: string
+    dateOfBirth: string
     phone?: string
     city: string
     state: string

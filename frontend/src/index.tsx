@@ -29,7 +29,8 @@ root.render(
           <LoadingBackdrop/>
           <Routes>
             <Route path="/" element={<div>
-              <a href={`${process.env.REACT_APP_API_SERVICE}/auth/github/login?site=${process.env.REACT_APP_SITE}&from=${process.env.REACT_APP_FRONTEND_SERVICE}`} onClick={() => window.close()}>github</a>
+              <BaseLayoutRouter />
+              <a href={`${process.env.REACT_APP_API_SERVICE}/auth/github/login?site=${process.env.REACT_APP_SITE}&from=${process.env.REACT_APP_FRONTEND_SERVICE}/account/create`} onClick={() => window.close()}>github</a>
               <br></br>
             </div>} />
             <Route path="/*" element={<BaseLayoutRouter />} />

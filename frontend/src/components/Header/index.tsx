@@ -21,6 +21,7 @@ import { asyncStatuses } from '../../redux/status';
 import Avatar from '@mui/material/Avatar';
 import { IUserRequest } from '../../types/account';
 import Typography from '@mui/material/Typography';
+import Notification from "../Notification";
 import styles from './index.module.css'
 
 const SearchIconWrapper = styled('div')(({ theme }) => ({
@@ -254,6 +255,7 @@ export default function Header({ toggleSideMenu }: HeaderProps) {
           </Box>
         </Toolbar>
       </AppBar>
+      <Notification/>
       {renderMobileMenu}
       {renderMenu}
     </Box>

@@ -1,17 +1,22 @@
-import { string } from 'yup';
+import {number, string} from 'yup';
+
+export type ValidationFieldsType = {
+  state: boolean;
+  message?: string;
+}
 
 export type ValidationType = {
-  email: boolean;
-  password: boolean;
-  firstname: boolean;
-  lastname: boolean;
-  city: boolean;
-  phone: boolean;
-  zip: boolean;
-  dob: boolean;
-  passwordConfirm: boolean;
-  state: boolean;
-  primaryAccountType: boolean;
+  email: ValidationFieldsType;
+  password: ValidationFieldsType;
+  firstname: ValidationFieldsType;
+  lastname: ValidationFieldsType;
+  city: ValidationFieldsType;
+  phone: ValidationFieldsType;
+  zip: ValidationFieldsType;
+  dateOfBirth: ValidationFieldsType;
+  passwordConfirm: ValidationFieldsType;
+  state: ValidationFieldsType;
+  primaryAccountType: ValidationFieldsType;
 }
 
 export type ValidationSchemaType = {
@@ -23,40 +28,57 @@ export type ValidationSchemaType = {
   phone: () => any;
   zip: () => any;
   passwordConfirm: () => any;
-  dob: () => any;
+  dateOfBirth: () => any;
   state: () => any;
   primaryAccountType: () => any;
 }
 
 export const validationSchema = {
-  email: string().email().required(),
-  password: string().min(8).required(),
-  firstname: string().min(2).required(),
-  lastname: string().min(2).required(),
-  city: string().min(2).required(),
-  phone: string().min(10).max(10),
-  zip: string().min(5).max(5).required(),
-  dob: string().required(),
-  state: string().min(2).required(),
+  email: string().required("Field is required").email("Invalid email address"),
+  password: string()
+    .required("Field is required")
+    .min(8, "The minimum password length is 8 symbols"),
+  firstname: string()
+    .required("Field is required")
+    .min(2, "Minimum length is 2")
+    .max(50, "Maximum length is 50"),
+  lastname: string()
+    .required("Field is required")
+    .min(2, "Minimum length is 2")
+    .max(50, "Maximum length is 50"),
+  city: string().min(2,"Minimum length is 2"),
+  phone: string()
+    .matches(/^(1\s?)?(\d{3}|\(\d{3}\))[\s\-]?\d{3}[\s\-]?\d{4}$/, 'Phone number is not valid'),
+  zip: string().min(5, "Invalid ZIP code").max(5),
+  dateOfBirth: string(),
+  state: string().min(2),
   primaryAccountType: string().required(),
-  passwordConfirm: string().required()
+  passwordConfirm: string()
+    .required('Field is required')
     .test("passwordConfirm", (value, context) => {
-      return value === context.options.context?.password;
+      if (value !== context.options.context?.password) {
+        return context.createError({ message: "Passwords doesn't match" })
+      }
+      return true
     })
 };
 
 export const validationFields = {
-  email: true, 
-  password: true,
-  firstname: true,
-  lastname: true,
-  city: true,
-  phone: true,
-  zip: true,
-  passwordConfirm: true,
-  dob: true,
-  state: true,
-  primaryAccountType: true,
+  email: {state: true, message: ''},
+  password: {state: true, message: ''},
+  firstname: {state: true, message: ''},
+  lastname: {state: true, message: ''},
+  city: {state: true, message: ''},
+  phone: {state: true, message: ''},
+  zip: {state: true, message: ''},
+  passwordConfirm: {state: true, message: ''},
+  dateOfBirth: {state: true, message: ''},
+  state: {state: true, message: ''},
+  primaryAccountType: {state: true, message: ''},
+}
+
+export const createPasswordFields = {
+  password: '',
 }
 
 export const formFields = {
@@ -64,8 +86,8 @@ export const formFields = {
   lastname: '',
   email: '',
   password: '',
-  primaryAccountType: '',
-  dob: '',
+  primaryAccountType: 'customer',
+  dateOfBirth: '',
   zip: '',
   city: '',
   state: '',

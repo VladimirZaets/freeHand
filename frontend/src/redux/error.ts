@@ -7,11 +7,11 @@ export interface IErrorData {
   message: string
 }
 
-export const formatResponseError = (error: AxiosError):IErrorData => {
+export const formatResponseError = async (error: Response):Promise<IErrorData> => {
   return {
-    status: error.response?.status ||  error.response?.status,
-    statusText: error.response?.statusText || '',
-    data: error.response?.data || '',
-    message: error.message
+    status: error.status,
+    statusText: error.statusText || '',
+    data: '',
+    message: ''
   }
 }

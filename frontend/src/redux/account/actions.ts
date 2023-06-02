@@ -1,7 +1,7 @@
-import { createAsyncThunk } from '@reduxjs/toolkit';
-import { SigninParams } from '../../types/account';
-import { formatResponseError } from '../error'
-import axios, { AxiosError } from 'axios';
+import {createAsyncThunk} from '@reduxjs/toolkit';
+import {CreatePasswordParams, SigninParams} from '../../types/account';
+import {formatResponseError} from '../error'
+import axios, {AxiosError} from 'axios';
 
 export const getUserByToken = createAsyncThunk(
   'api/v1/account/getUserByToken',
@@ -30,10 +30,34 @@ export const getSocialSigninOptions = createAsyncThunk(
   },
 )
 
+export const signup = createAsyncThunk(
+  'account/signup',
+  async (data: SigninParams, thunkAPI) => {
+    const {rejectWithValue} = thunkAPI;
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_SERVICE}/auth/local/callback`, {
+        method: "POST",
+        mode: "cors",
+        cache: "no-cache",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        redirect: "follow",
+        referrerPolicy: "no-referrer",
+        body: JSON.stringify(data),
+      });
+      return response.json()
+    } catch (e) {
+      console.log("error", e)
+    }
+  }
+)
+
 export const signin = createAsyncThunk(
   'account/signin',
   async (data: SigninParams, thunkAPI) => {
-    const { rejectWithValue } = thunkAPI;    
+    const {rejectWithValue} = thunkAPI;
     return axios.post(
       `${process.env.REACT_APP_API_SERVICE}/account/signin`,
       JSON.stringify(data),
@@ -42,10 +66,26 @@ export const signin = createAsyncThunk(
           'Content-Type': 'application/json'
         }
       }
-    ).catch((error:AxiosError) => {      
-      return rejectWithValue(formatResponseError(error));      
+    ).catch((error) => {
+      return rejectWithValue(formatResponseError(error));
     });
   }
 )
 
-
+export const createPassword = createAsyncThunk(
+  'account/signin',
+  async (data: CreatePasswordParams, thunkAPI) => {
+    const {rejectWithValue} = thunkAPI;
+    return axios.post(
+      `${process.env.REACT_APP_API_SERVICE}/account/signin`,
+      JSON.stringify(data),
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    ).catch((error) => {
+      return rejectWithValue(formatResponseError(error));
+    });
+  }
+)

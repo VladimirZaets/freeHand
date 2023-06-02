@@ -1,8 +1,9 @@
-import { createSlice } from '@reduxjs/toolkit'
+import {createSlice} from '@reduxjs/toolkit'
+//import {createNotification} from './actions';
 
 interface INotification {
   isOpen: boolean
-  message: string
+  message: any
   type?: string
   duration?: number
   position?: {
@@ -21,10 +22,10 @@ const initialState: IinitialState = {
   notification: {
     isOpen: false,
     message: '',
-    type: 'success',
+    type: '',
     position: {
-      horizontal: 'center',
-      vertical: 'top'
+      horizontal: 'bottom',
+      vertical: 'right'
     },
     duration: 6000
   }
@@ -34,25 +35,35 @@ export const commonSlice = createSlice({
   name: 'common',
   initialState,
   reducers: {
+    closeLoadingBackdrop(state) {
+      state.isOpenLoadingBackdrop = false
+    },
     openLoadingBackdrop(state) {
       console.log(state)
     },
-    closeLoadingBackdrop(state) {
-      console.log(state)
-    },
-    openNotification(state) {
-      console.log(state)
+    createNotification(state, action) {
+      state.notification = {
+        ...state.notification,
+        isOpen: true,
+        message: action.payload.message,
+        type: action.payload.type
+      }
     },
     closeNotification(state) {
-      console.log(state)
+      state.notification = {
+        ...state.notification,
+        isOpen: false,
+        message: '',
+        type: ''
+      }
     }
-  }  
+  },
+  extraReducers: (builder) => {}
 })
 
-export const { 
-  openLoadingBackdrop, 
+export const {
   closeLoadingBackdrop,
-  openNotification,
-  closeNotification
+  closeNotification,
+  createNotification
 } = commonSlice.actions
 export default commonSlice.reducer

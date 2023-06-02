@@ -14,53 +14,72 @@ import styles from './index.module.css';
 import { ReactComponent as GitHubIcon } from '../../icons/github.svg';
 import { ReactComponent as GmailIcon } from '../../icons/gmail.svg';
 import { ReactComponent as FacebookIcon } from '../../icons/facebook.svg';
-import { SigninOption, SigninOptions, ISocialMediaOptionsRequest, SigninParams, SignupParams } from '../../types/account';
+import { SigninOption, SigninOptions, ISocialMediaOptionsRequest, SignupParams } from '../../types/account';
 import { Link as LinkRouter } from "react-router-dom";
 import { useState, FormEvent } from 'react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker/DatePicker';
 import statesJson from '../../static/states.json';
 import { ValidationType, ValidationSchemaType, validationSchema, validationFields, formFields } from './state';
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
+type ValidationFields = SignupParams & {passwordConfirm?: string}
 type Fields = SignupParams
+
 type Common = {
   isSubmitting: boolean,
   passwordConfirm: string
+  showPassword: boolean
 }
 
 const SignupForm = (
   {
     socialMediaOptions,
-    signinHandler,
+    signupHandler,
     onFormChange,
     error = false,
     errorMessage
   }: {
     socialMediaOptions: ISocialMediaOptionsRequest,
-    signinHandler: (data: SigninParams) => void;
+    signupHandler: (data: SignupParams) => void;
     onFormChange: (e?: any) => void;
     error?: boolean,
     errorMessage?: string
   }) => {
   const [fields, setFields] = useState<Fields>(formFields)
   const [validation, setValidation] = useState<ValidationType>(validationFields)
-  const [common, setCommon] = useState<Common>({ isSubmitting: false, passwordConfirm: '' })
-  const validateField = (data: Fields) => async (field: string) => { 
-    const isValid = (validationSchema[field as keyof ValidationSchemaType].isValidSync(data[field as keyof Fields], {context: {...fields}}));
-    setValidation((fields) => ({
-      ...fields,
-      [field]: isValid
-    }))
-    return isValid
+  const [common, setCommon] = useState<Common>({ isSubmitting: false, passwordConfirm: '', showPassword: false })
+  const validateField = (data: ValidationFields) => {
+    return async (field: string) => {
+      const isValid = {
+        state: true,
+        message: ''
+      }
+      try {
+        (validationSchema[field as keyof ValidationSchemaType].validateSync(data[field as keyof ValidationFields], {context: {...fields}}));
+      } catch (err: any) {
+        isValid.state = false
+        isValid.message = err.message
+      }
+      setValidation((fields) => ({
+        ...fields,
+        [field]: isValid
+      }))
+      return isValid
+    };
   }
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     let isValid = true
-    for (const fieldName in fields) {
-      isValid = await validateField(fields)(fieldName) || false
+    const validationFields = {...fields, passwordConfirm: common.passwordConfirm}
+    for (const fieldName in validationFields) {
+      const validation = await validateField(validationFields)(fieldName)
+      isValid = validation.state || false
     }
+
     if (isValid) {
       setCommon((common) => ({ ...common, isSubmitting: true }));
-      await signinHandler(fields) as any;
+      await signupHandler(fields) as any;
       setCommon((common) => ({ ...common, isSubmitting: false }));
     }
   }
@@ -100,6 +119,9 @@ const SignupForm = (
                 required
                 disabled={common.isSubmitting}
                 value={fields.firstname}
+                error={!validation.firstname.state}
+                helperText={!validation.firstname.state ? validation.firstname.message : ''}
+                onBlur={() => validateField(fields)('firstname')}
                 onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, firstname: e.target.value })) }}
               />
             </Grid>
@@ -113,6 +135,9 @@ const SignupForm = (
                 required
                 disabled={common.isSubmitting}
                 value={fields.lastname}
+                error={!validation.lastname.state}
+                helperText={!validation.lastname.state ? validation.lastname.message : ''}
+                onBlur={() => validateField(fields)('lastname')}
                 onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, lastname: e.target.value })) }}
               />
             </Grid>
@@ -120,8 +145,8 @@ const SignupForm = (
               <DatePicker
                 sx={{ my: 2, width: "100%" }}
                 label="Date of Birth"
-                value={fields.dob || null}
-                onChange={(value) => { console.log(value);onFormChange(value); setFields((fields) => ({ ...fields, dob: value as string })) }}
+                value={fields.dateOfBirth || null}
+                onChange={(value) => { onFormChange(value); setFields((fields) => ({ ...fields, dateOfBirth: value as string })) }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -139,42 +164,6 @@ const SignupForm = (
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
-                id="password"
-                name="password"
-                label="Password"
-                required
-                type="password"
-                fullWidth
-                autoComplete="password"
-                value={fields.password}
-                margin="normal"
-                disabled={common.isSubmitting}
-                error={!validation.password}
-                helperText={!validation.password ? 'The password is too short. The password should be at least 8 symbols.' : ''}
-                onBlur={(e) => validateField(fields)('password')}
-                onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, password: e.target.value })) }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                id="confirm-password"
-                name="confirm-password"
-                label="Confirm password"
-                required
-                type="password"
-                fullWidth
-                autoComplete="confirm-password"
-                value={common.passwordConfirm}
-                margin="normal"
-                disabled={common.isSubmitting}
-                error={!validation.passwordConfirm}
-                helperText={!validation.password ? 'The password is too short. The password should be at least 8 symbols.' : ''}
-                onBlur={(e) => validateField(common as any)('passwordConfirm')}
-                onChange={(e) => { onFormChange(e); setCommon((fields) => ({ ...fields, passwordConfirm: e.target.value })) }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
                 id="email"
                 label="Email"
                 name="email"
@@ -184,8 +173,8 @@ const SignupForm = (
                 disabled={common.isSubmitting}
                 fullWidth
                 value={fields.email}
-                error={!validation.email}
-                helperText={!validation.email ? 'Invalid email. Please enter correct email address.' : ''}
+                error={!validation.email.state}
+                helperText={!validation.email.state ? validation.email.message : ''}
                 onBlur={() => validateField(fields)('email')}
                 onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, email: e.target.value })) }}
               />
@@ -196,14 +185,14 @@ const SignupForm = (
                 label="Phone (optional)"
                 name="phone"
                 margin="normal"
-                type={"number"}
+                type={"phone"}
                 autoComplete="phone"
                 disabled={common.isSubmitting}
                 fullWidth
                 value={fields.phone}
-                error={!validation.email}
-                helperText={!validation.email ? 'Invalid email. Please enter correct email address.' : ''}
-                onBlur={() => validateField(fields)('email')}
+                error={!validation.phone.state}
+                helperText={!validation.phone.state ? validation.phone.message : ''}
+                onBlur={() => validateField(fields)('phone')}
                 onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, phone: e.target.value as string })) }}
               />
             </Grid>
@@ -212,15 +201,11 @@ const SignupForm = (
                 id="city"
                 label="City (street)"
                 name="city"
-                required
                 margin="normal"
                 type={"text"}
                 disabled={common.isSubmitting}
                 fullWidth
                 value={fields.city}
-                error={!validation.email}
-                helperText={!validation.email ? 'Invalid email. Please enter correct email address.' : ''}
-                onBlur={() => validateField(fields)('city')}
                 onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, city: e.target.value })) }}
               />
             </Grid>
@@ -243,17 +228,62 @@ const SignupForm = (
                 id="zip"
                 label="Zip code"
                 name="zip"
-                required
                 margin="normal"
-                type={"number"}
+                type={"zip"}
                 disabled={common.isSubmitting}
                 fullWidth
                 value={fields.zip}
-                error={!validation.email}
-                helperText={!validation.email ? 'Invalid email. Please enter correct email address.' : ''}
+                error={!validation.zip}
+                helperText={!validation.zip ? 'Invalid zip.' : ''}
                 onBlur={() => validateField(fields)('email')}
                 onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, zip: e.target.value })) }}
               />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                id="password"
+                name="password"
+                label="Password"
+                required
+                type={common.showPassword ? "text" : "password"}
+                fullWidth
+                autoComplete="password"
+                value={fields.password}
+                margin="normal"
+                disabled={common.isSubmitting}
+                error={!validation.password.state}
+                helperText={!validation.password.state ? validation.password.message : ''}
+                onBlur={(e) => validateField(fields)('password')}
+                onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, password: e.target.value })) }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                id="confirm-password"
+                name="confirm-password"
+                label="Confirm password"
+                required
+                type={common.showPassword ? "text" : "password"}
+                fullWidth
+                autoComplete="confirm-password"
+                value={common.passwordConfirm}
+                margin="normal"
+                disabled={common.isSubmitting}
+                error={!validation.passwordConfirm.state}
+                helperText={!validation.passwordConfirm.state ? validation.passwordConfirm.message : ''}
+                onBlur={(e) => validateField(common as any)('passwordConfirm')}
+                onChange={(e) => { onFormChange(e); setCommon((fields) => ({ ...fields, passwordConfirm: e.target.value })) }}
+              />
+            </Grid>
+            <Grid item xs={12} md={12} justifyContent={"flex-end"} display={'flex'}>
+              <FormControlLabel control={
+                <Checkbox
+                  id={'show-password'}
+                  name={'show-password'}
+                  value={common.showPassword}
+                  onChange={(e) => { onFormChange(e); setCommon((fields) => ({ ...fields, showPassword: e.target.checked })) }}
+                />
+              } label="Show password" />
             </Grid>
           </Grid>
           <Button

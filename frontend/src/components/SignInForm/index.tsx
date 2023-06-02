@@ -67,7 +67,7 @@ const SigninForm = (
     }
     if (isValid) {
       setCommon((common) => ({...common, isSubmitting: true}));
-      await signinHandler(fields) as any;
+      await signinHandler(fields);
       setCommon((common) => ({...common, isSubmitting: false}));            
     }
   }
