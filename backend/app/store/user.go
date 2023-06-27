@@ -25,6 +25,23 @@ type User struct {
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
+type Claim interface {
+	SetStrAttr(string, string)
+	SetBoolAttr(string, bool)
+}
+
+func (u *User) UserToClaim(claim Claim) {
+	claim.SetStrAttr("id", u.Id)
+	claim.SetStrAttr("firstname", u.FirstName)
+	claim.SetStrAttr("lastname", u.LastName)
+	claim.SetStrAttr("email", u.Email)
+	claim.SetStrAttr("avatar_url", u.AvatarUrl)
+	claim.SetStrAttr("phone", u.Phone)
+	claim.SetStrAttr("dob", u.DOB.String())
+	claim.SetStrAttr("primary_type", u.PrimaryType)
+	claim.SetBoolAttr("verified", u.Verified)
+}
+
 type UserParams struct {
 	Field      string
 	Value      string
@@ -42,6 +59,10 @@ func NewUserService() *UserService {
 	}
 }
 
+func (s *UserService) SetConnection(conn *sqlx.DB) {
+	s.conn = conn
+}
+
 func (s *UserService) Create(u User) error {
 	if u.Id == "" {
 		token, err := RandToken()
@@ -51,7 +72,7 @@ func (s *UserService) Create(u User) error {
 		u.Id = token
 	}
 	if u.Password != "" {
-		u.Password = hashPassword(u.Password)
+		u.Password = s.HashUserPassword(u.Password)
 	}
 	_, err := s.conn.NamedExec(s.getCreateSqlStatement(), u)
 	if err != nil {
@@ -69,7 +90,7 @@ func (s *UserService) CreateIfNotExists(u User) error {
 		u.Id = token
 	}
 	if u.Password != "" {
-		u.Password = hashPassword(u.Password)
+		u.Password = s.HashUserPassword(u.Password)
 	}
 	tx, err := s.conn.Beginx()
 	if err != nil {
@@ -82,7 +103,7 @@ func (s *UserService) CreateIfNotExists(u User) error {
 	}
 	if createdUser.Id != "" {
 		_ = tx.Rollback()
-		return ErrorUserExist
+		return ErrorAlreadyExist
 	}
 	_, err = tx.NamedExec(s.getCreateSqlStatement(), u)
 	if err != nil {
@@ -94,7 +115,7 @@ func (s *UserService) CreateIfNotExists(u User) error {
 	return nil
 }
 
-func (s *UserService) GetWithParams(params UserParams) (*User, error) {
+func (s *UserService) GetWithParams(params UserParams) (User, error) {
 	var attributes string
 	if len(params.Attributes) > 0 {
 		attributes = strings.Join(params.Attributes, ", ")
@@ -105,43 +126,37 @@ func (s *UserService) GetWithParams(params UserParams) (*User, error) {
 	var user User
 	err := s.conn.Get(&user, sqlStatement, params.Value)
 	if err == sql.ErrNoRows {
-		return &user, nil
+		return user, nil
 	}
 	if err != nil {
 		log.Printf("error getting user: %s", err)
-		return nil, err
+		return user, err
 	}
-	return &user, nil
+	return user, nil
 }
 
-func (s *UserService) GetByEmail(email string) (*User, error) {
+func (s *UserService) GetByEmail(email string) (User, error) {
 	sqlStatement := fmt.Sprintf(`SELECT * FROM %s WHERE email=$1`, s.table)
-	//row := s.conn.QueryRow(sqlStatement, email)
 
 	var user User
 	err := s.conn.Get(&user, sqlStatement, email)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("user****", user.Email)
 
-	//err := row.Scan(
-	//	&user.Id,
-	//	&user.FirstName,
-	//	&user.LastName,
-	//	&user.DOB,
-	//	&user.Email,
-	//	&user.Password,
-	//	&user.AvatarUrl,
-	//	&user.PrimaryType,
-	//	&user.Verified,
-	//	&user.CreatedAt,
-	//	&user.UpdatedAt,
-	//)
-	//if err != nil {
-	//	return nil, err
-	//}
-	return &user, nil
+	return user, nil
+}
+
+func (s *UserService) GetById(id string) (User, error) {
+	sqlStatement := fmt.Sprintf(`SELECT * FROM %s WHERE id=$1`, s.table)
+
+	var user User
+	err := s.conn.Get(&user, sqlStatement, id)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return user, nil
 }
 
 func (s *UserService) CreateOrUpdate(user *User) error {
@@ -150,10 +165,6 @@ func (s *UserService) CreateOrUpdate(user *User) error {
 
 func (s *UserService) Delete(id string) error {
 	return nil
-}
-
-func (s *UserService) SetConnection(conn *sqlx.DB) {
-	s.conn = conn
 }
 
 func (s *UserService) getCreateSqlStatement() string {
@@ -169,7 +180,7 @@ func (s *UserService) getByEmailSqlStatement() string {
 	return fmt.Sprintf(`SELECT id FROM %s WHERE email=$1`, s.table)
 }
 
-func hashPassword(pws string) string {
+func (s *UserService) HashUserPassword(pws string) string {
 	hash, err := bcrypt.GenerateFromPassword([]byte(pws), bcrypt.DefaultCost)
 	if err != nil {
 		log.Println(err)

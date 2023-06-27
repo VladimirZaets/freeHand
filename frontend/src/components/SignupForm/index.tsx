@@ -1,5 +1,4 @@
 import Box from '@mui/material/Box';
-import Link from '@mui/material/Link';
 import Button from '@mui/material/Button';
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -11,25 +10,29 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import InputLabel from "@mui/material/InputLabel";
 import styles from './index.module.css';
-import { ReactComponent as GitHubIcon } from '../../icons/github.svg';
-import { ReactComponent as GmailIcon } from '../../icons/gmail.svg';
-import { ReactComponent as FacebookIcon } from '../../icons/facebook.svg';
-import { SigninOption, SigninOptions, ISocialMediaOptionsRequest, SignupParams } from '../../types/account';
+//@ts-ignore
+import  SocialAuthProviders, {AuthProvidersType} from "../SocialAuthProviders";
+//@ts-ignore
+import { SignupParams, ValidationFields, Fields, Common } from './index';
 import { Link as LinkRouter } from "react-router-dom";
 import { useState, FormEvent } from 'react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker/DatePicker';
 import statesJson from '../../static/states.json';
-import { ValidationType, ValidationSchemaType, validationSchema, validationFields, formFields } from './state';
+//@ts-ignore
+import { ValidationType, ValidationSchemaType, validationSchema, validationFields } from './validation';
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 
-type ValidationFields = SignupParams & {passwordConfirm?: string}
-type Fields = SignupParams
-
-type Common = {
-  isSubmitting: boolean,
-  passwordConfirm: string
-  showPassword: boolean
+export const formFields = {
+  firstname: '',
+  lastname: '',
+  email: '',
+  password: '',
+  primaryAccountType: 'customer',
+  dateOfBirth: '',
+  zip: '',
+  city: '',
+  state: '',
 }
 
 const SignupForm = (
@@ -40,7 +43,7 @@ const SignupForm = (
     error = false,
     errorMessage
   }: {
-    socialMediaOptions: ISocialMediaOptionsRequest,
+    socialMediaOptions: AuthProvidersType,
     signupHandler: (data: SignupParams) => void;
     onFormChange: (e?: any) => void;
     error?: boolean,
@@ -56,12 +59,13 @@ const SignupForm = (
         message: ''
       }
       try {
+        // @ts-ignore
         (validationSchema[field as keyof ValidationSchemaType].validateSync(data[field as keyof ValidationFields], {context: {...fields}}));
       } catch (err: any) {
         isValid.state = false
         isValid.message = err.message
       }
-      setValidation((fields) => ({
+      setValidation((fields:ValidationType) => ({
         ...fields,
         [field]: isValid
       }))
@@ -78,9 +82,9 @@ const SignupForm = (
     }
 
     if (isValid) {
-      setCommon((common) => ({ ...common, isSubmitting: true }));
-      await signupHandler(fields) as any;
-      setCommon((common) => ({ ...common, isSubmitting: false }));
+      setCommon((common:Common) => ({ ...common, isSubmitting: true }));
+      signupHandler(fields);
+      setCommon((common:Common) => ({ ...common, isSubmitting: false }));
     }
   }
   return (
@@ -122,7 +126,7 @@ const SignupForm = (
                 error={!validation.firstname.state}
                 helperText={!validation.firstname.state ? validation.firstname.message : ''}
                 onBlur={() => validateField(fields)('firstname')}
-                onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, firstname: e.target.value })) }}
+                onChange={(e) => { onFormChange(e); setFields((fields:Fields) => ({ ...fields, firstname: e.target.value })) }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -138,7 +142,7 @@ const SignupForm = (
                 error={!validation.lastname.state}
                 helperText={!validation.lastname.state ? validation.lastname.message : ''}
                 onBlur={() => validateField(fields)('lastname')}
-                onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, lastname: e.target.value })) }}
+                onChange={(e) => { onFormChange(e); setFields((fields:Fields) => ({ ...fields, lastname: e.target.value })) }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -146,7 +150,7 @@ const SignupForm = (
                 sx={{ my: 2, width: "100%" }}
                 label="Date of Birth"
                 value={fields.dateOfBirth || null}
-                onChange={(value) => { onFormChange(value); setFields((fields) => ({ ...fields, dateOfBirth: value as string })) }}
+                onChange={(value) => { onFormChange(value); setFields((fields:Fields) => ({ ...fields, dateOfBirth: value as string })) }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -156,7 +160,7 @@ const SignupForm = (
                   id="demo-simple-select"
                   value={fields.primaryAccountType}
                   label="Primary Account Type"
-                  onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, primaryAccountType: e.target.value })) }}                  >
+                  onChange={(e) => { onFormChange(e); setFields((fields:Fields) => ({ ...fields, primaryAccountType: e.target.value })) }}                  >
                   <MenuItem value={'customer'}>Customer</MenuItem>
                   <MenuItem value={'contractor'}>Contractor</MenuItem>
                 </Select>
@@ -176,7 +180,7 @@ const SignupForm = (
                 error={!validation.email.state}
                 helperText={!validation.email.state ? validation.email.message : ''}
                 onBlur={() => validateField(fields)('email')}
-                onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, email: e.target.value })) }}
+                onChange={(e) => { onFormChange(e); setFields((fields:Fields) => ({ ...fields, email: e.target.value })) }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -193,7 +197,7 @@ const SignupForm = (
                 error={!validation.phone.state}
                 helperText={!validation.phone.state ? validation.phone.message : ''}
                 onBlur={() => validateField(fields)('phone')}
-                onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, phone: e.target.value as string })) }}
+                onChange={(e) => { onFormChange(e); setFields((fields:Fields) => ({ ...fields, phone: e.target.value as string })) }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -206,7 +210,7 @@ const SignupForm = (
                 disabled={common.isSubmitting}
                 fullWidth
                 value={fields.city}
-                onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, city: e.target.value })) }}
+                onChange={(e) => { onFormChange(e); setFields((fields:Fields) => ({ ...fields, city: e.target.value })) }}
               />
             </Grid>
             <Grid item xs={12} md={4}>
@@ -216,9 +220,9 @@ const SignupForm = (
                 sx={{ my: 2 }}
                 options={Object.keys(statesJson) as any}
                 value={fields.state || null}
-                onChange={(e, select:any | null) => { 
+                onChange={(e, select:any | null) => {
                   onFormChange(e);
-                  if (select) { setFields((fields) => ({ ...fields, state: select }))}                  
+                  if (select) { setFields((fields:Fields) => ({ ...fields, state: select }))}
                 }}
                 renderInput={(params) => <TextField {...params} label="State" />}
               />
@@ -236,7 +240,7 @@ const SignupForm = (
                 error={!validation.zip}
                 helperText={!validation.zip ? 'Invalid zip.' : ''}
                 onBlur={() => validateField(fields)('email')}
-                onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, zip: e.target.value })) }}
+                onChange={(e) => { onFormChange(e); setFields((fields:Fields) => ({ ...fields, zip: e.target.value })) }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -253,8 +257,8 @@ const SignupForm = (
                 disabled={common.isSubmitting}
                 error={!validation.password.state}
                 helperText={!validation.password.state ? validation.password.message : ''}
-                onBlur={(e) => validateField(fields)('password')}
-                onChange={(e) => { onFormChange(e); setFields((fields) => ({ ...fields, password: e.target.value })) }}
+                onBlur={() => validateField(fields)('password')}
+                onChange={(e) => { onFormChange(e); setFields((fields:Fields) => ({ ...fields, password: e.target.value })) }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -271,8 +275,8 @@ const SignupForm = (
                 disabled={common.isSubmitting}
                 error={!validation.passwordConfirm.state}
                 helperText={!validation.passwordConfirm.state ? validation.passwordConfirm.message : ''}
-                onBlur={(e) => validateField(common as any)('passwordConfirm')}
-                onChange={(e) => { onFormChange(e); setCommon((fields) => ({ ...fields, passwordConfirm: e.target.value })) }}
+                onBlur={() => validateField(common as any)('passwordConfirm')}
+                onChange={(e) => { onFormChange(e); setCommon((fields:Common) => ({ ...fields, passwordConfirm: e.target.value })) }}
               />
             </Grid>
             <Grid item xs={12} md={12} justifyContent={"flex-end"} display={'flex'}>
@@ -281,7 +285,7 @@ const SignupForm = (
                   id={'show-password'}
                   name={'show-password'}
                   value={common.showPassword}
-                  onChange={(e) => { onFormChange(e); setCommon((fields) => ({ ...fields, showPassword: e.target.checked })) }}
+                  onChange={(e) => { onFormChange(e); setCommon((fields:Common) => ({ ...fields, showPassword: e.target.checked })) }}
                 />
               } label="Show password" />
             </Grid>
@@ -301,9 +305,8 @@ const SignupForm = (
           </Button>
         </Box>
         {
-          socialMediaOptions.request.status === 'fulfilled' &&
-          socialMediaOptions.data?.length &&
-          getSocialBlock(socialMediaOptions.data)
+          socialMediaOptions.length &&
+          <SocialAuthProviders data={socialMediaOptions}/>
         }
         <LinkRouter to={'/account/password-forgot'}>
           <Typography variant="body2">
@@ -314,32 +317,5 @@ const SignupForm = (
     </div>
   )
 };
-
-const getFacebookElement = (key: number) => <Link key={key} href="#dsds"><FacebookIcon width={23} /></Link>
-const getGmailElement = (key: number) => <Link key={key} href="#dsds"><GmailIcon width={28} /></Link>
-const getGithubElement = (key: number) => (<Link key={key} href="#dsds"><GitHubIcon width={26} /></Link>)
-const bindSocialtoNodes = (socialOptions: SigninOptions) => socialOptions.map((item: SigninOption, i: number) => {
-  if (item.name === 'facebook') {
-    return getFacebookElement(i)
-  } else if (item.name === 'google') {
-    return getGmailElement(i)
-  } else if (item.name === 'github') {
-    return getGithubElement(i)
-  }
-  return null
-});
-
-const getSocialBlock = (socialOptions: SigninOptions) => {
-  return (
-    <Box sx={{ mt: 3 }} className={styles['signin-form-social-media']}>
-      <Typography>
-        or sign in by social media:
-      </Typography>
-      <Box className={styles['signin-form-icons-container']}>
-        {bindSocialtoNodes(socialOptions)}
-      </Box>
-    </Box>
-  )
-}
 
 export default SignupForm;

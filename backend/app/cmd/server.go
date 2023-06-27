@@ -3,17 +3,14 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/VladimirZaets/freehands/backend/app/api"
+	"github.com/VladimirZaets/freehands/backend/app/services/auth"
 	"github.com/VladimirZaets/freehands/backend/app/store"
-	"github.com/go-pkgz/auth/provider"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/VladimirZaets/freehands/backend/app/api"
-	"github.com/go-pkgz/auth"
-	"github.com/go-pkgz/auth/avatar"
-	"github.com/go-pkgz/auth/token"
 	log "github.com/go-pkgz/lgr"
 )
 
@@ -24,12 +21,17 @@ type AuthGroup struct {
 }
 
 type DataStore struct {
-	Host     string `long:"host" env:"HOST" description:"datasource host"`
-	Username string `long:"username" env:"USERNAME" description:"datasource username"`
-	Password string `long:"password" env:"PASSWORD" description:"datasource password"`
+	Host       string `long:"host" env:"HOST" description:"datasource host"`
+	Username   string `long:"username" env:"USERNAME" description:"datasource username"`
+	Password   string `long:"password" env:"PASSWORD" description:"datasource password"`
+	Database   string `long:"database" env:"DATABASE" description:"datasource database"`
+	SearchPath string `long:"search-path" env:"SEARCH_PATH" description:"datasource search path"`
+	Driver     string `long:"driver" env:"DRIVER" description:"datasource driver"`
+	SSLMode    string `long:"ssl-mode" env:"SSL_MODE" default:"disable" description:"datasource ssl mode"`
 }
 
 type ServerCommand struct {
+	AppName      string   `long:"app-name" env:"APP_NAME" default:"freehands" description:"application name"`
 	Port         int      `long:"port" env:"APP_PORT" default:"8080" description:"port"`
 	Address      string   `long:"address" env:"APP_ADDRESS" default:"" description:"listening address"`
 	APIUrl       string   `long:"api-url" env:"API_URL" required:"true" description:"url to api"`
@@ -90,22 +92,22 @@ func (s *ServerCommand) Execute(_ []string) error {
 func (s *ServerCommand) newServerApp(ctx context.Context) (*serverApp, error) {
 	log.Printf("[INFO] start server on port %s:%d", s.Address, s.Port)
 
-	authenticator := s.getAuthenticator()
-
 	dataService := store.NewDataStore(store.DataStoreParams{
 		Host:       s.DataStore.Host,
 		Username:   s.DataStore.Username,
 		Password:   s.DataStore.Password,
-		DBName:     "freehands",
-		SearchPath: "api",
-		Driver:     "postgres",
-		SSLMode:    "disable",
+		DBName:     s.DataStore.Database,
+		SearchPath: s.DataStore.SearchPath,
+		Driver:     s.DataStore.Driver,
+		SSLMode:    s.DataStore.SSLMode,
 	})
 
+	authenticator := auth.GetAuthenticator(dataService, s.APIUrl, s.Address, s.getJwtCookieDomain())
 	srv := api.NewRest(api.RestParams{
 		Authenticator: authenticator,
 		AllowedHosts:  s.AllowedHosts,
 		DataService:   dataService,
+		AppName:       s.AppName,
 	})
 
 	err := s.addAuthProviders(authenticator, srv)
@@ -122,27 +124,6 @@ func (s *ServerCommand) newServerApp(ctx context.Context) (*serverApp, error) {
 	}, nil
 }
 
-func (s *ServerCommand) getAuthenticator() *auth.Service {
-	return auth.NewService(auth.Opts{
-		URL:            s.APIUrl,
-		Issuer:         "freehands",
-		SecureCookies:  true,
-		TokenDuration:  time.Minute * 5,
-		CookieDuration: time.Hour * 24,
-		DisableXSRF:    true,
-		SecretReader: token.SecretFunc(func(aud string) (string, error) { // get secret per site
-			log.Printf("aud", aud)
-			return "secret", nil
-		}),
-		AvatarStore: avatar.NewNoOp(),
-		ClaimsUpd: token.ClaimsUpdFunc(func(c token.Claims) token.Claims { // set attributes, on new token or refresh
-			return c
-		}),
-		JWTCookieDomain: s.getJwtCookieDomain(),
-		Logger:          log.Default(),
-	})
-}
-
 func (s *ServerCommand) getJwtCookieDomain() string {
 	var jwtCookieDomain string
 	if s.ENV == "prod" {
@@ -153,16 +134,18 @@ func (s *ServerCommand) getJwtCookieDomain() string {
 	return jwtCookieDomain
 }
 
-func (s *ServerCommand) addAuthProviders(authenticator *auth.Service, rest *api.Rest) error {
+func (s *ServerCommand) addAuthProviders(authenticator auth.Manager, rest *api.Rest) error {
 	providersCount := 0
 
-	authenticator.AddCustomHandler(api.LocalHandler{
+	authenticator.AddCustomHandler(auth.LocalHandler{
 		L:            log.Default(),
 		ProviderName: "local",
 		TokenService: authenticator.TokenService(),
-		Issuer:       "freehands",
+		Issuer:       s.AppName,
 		AvatarSaver:  authenticator.AvatarProxy(),
 		AuthHook:     rest.AuthHandlers.GetLocalAuthUserHandler(),
+		CredChecker:  rest.CredentialChecker,
+		UserIDFunc:   rest.AuthHandlers.UserIDFunc,
 	})
 
 	if s.Auth.Google.CID != "" && s.Auth.Google.CSEC != "" {
@@ -172,8 +155,8 @@ func (s *ServerCommand) addAuthProviders(authenticator *auth.Service, rest *api.
 	if s.Auth.Github.CID != "" && s.Auth.Github.CSEC != "" {
 		authenticator.AddCustomProvider(
 			"github",
-			auth.Client{Cid: s.Auth.Github.CID, Csecret: s.Auth.Github.CSEC},
-			api.NewGithubProvider(s.Auth.Github.Attributes, rest.AuthHandlers.GetGithubAuthUserHandler()),
+			auth.GetClient(s.Auth.Github.CID, s.Auth.Github.CSEC),
+			auth.NewGithubProvider(s.Auth.Github.Attributes, rest.AuthHandlers.GetGithubAuthUserHandler()),
 		)
 		providersCount++
 	}
@@ -183,11 +166,6 @@ func (s *ServerCommand) addAuthProviders(authenticator *auth.Service, rest *api.
 		providersCount++
 	}
 
-	authenticator.AddDirectProvider("local", provider.CredCheckerFunc(func(user, password string) (ok bool, err error) {
-		ok, err = checkUserSomehow(user, password)
-		return ok, err
-	}))
-
 	if providersCount == 0 {
 		log.Printf("[WARN] no auth providers defined")
 	}
@@ -195,17 +173,11 @@ func (s *ServerCommand) addAuthProviders(authenticator *auth.Service, rest *api.
 	return nil
 }
 
-func checkUserSomehow(user string, password string) (bool, error) {
-	fmt.Println("user", user)
-	fmt.Println("password", password)
-	return true, nil
-}
-
 type serverApp struct {
 	*ServerCommand
 	rest          *api.Rest
 	terminated    chan struct{}
-	authenticator *auth.Service
+	authenticator auth.Manager
 	dataService   *store.DataStore
 }
 

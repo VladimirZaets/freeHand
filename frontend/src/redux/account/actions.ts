@@ -1,91 +1,51 @@
 import {createAsyncThunk} from '@reduxjs/toolkit';
-import {CreatePasswordParams, SigninParams} from '../../types/account';
-import {formatResponseError} from '../error'
-import axios, {AxiosError} from 'axios';
+//@ts-ignore
+import {CreatePasswordParams} from '../../components/CreatePasswordForm';
+import paths from '../../api/paths';
+import request from "../../api/request";
 
-export const getUserByToken = createAsyncThunk(
-  'api/v1/account/getUserByToken',
+// @ts-ignore
+import {INotification} from "../../components/Notification";
+import Localstorage from "../../localstorage";
+
+export const getUser = createAsyncThunk(
+  paths.account.user,
   async () => {
-    const response = await fetch(`${process.env.REACT_APP_API_SERVICE}/user`, {
-      method: "GET",
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-    return response.json()
-  }
-)
-
-export const getSocialSigninOptions = createAsyncThunk(
-  'account/getSocialSigninOptions',
-  async () => {
-    const response = await fetch(`${process.env.REACT_APP_API_SERVICE}/account/signin/social/options`, {
-      method: "GET",
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-    return response.json()
-  },
-)
-
-export const signup = createAsyncThunk(
-  'account/signup',
-  async (data: SigninParams, thunkAPI) => {
-    const {rejectWithValue} = thunkAPI;
-    try {
-      const response = await fetch(`${process.env.REACT_APP_API_SERVICE}/auth/local/callback`, {
-        method: "POST",
-        mode: "cors",
-        cache: "no-cache",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        redirect: "follow",
-        referrerPolicy: "no-referrer",
-        body: JSON.stringify(data),
-      });
-      return response.json()
-    } catch (e) {
-      console.log("error", e)
+    const user = Localstorage.getUser();
+    if (user) {
+      return Promise.resolve(user);
     }
+    const response: Response = await request.get(paths.account.user)
+    if (response.ok) {
+      const user = await response.json();
+      Localstorage.setUser(user);
+      return user;
+    }
+
+    return response.json();
   }
 )
 
-export const signin = createAsyncThunk(
-  'account/signin',
-  async (data: SigninParams, thunkAPI) => {
-    const {rejectWithValue} = thunkAPI;
-    return axios.post(
-      `${process.env.REACT_APP_API_SERVICE}/account/signin`,
-      JSON.stringify(data),
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    ).catch((error) => {
-      return rejectWithValue(formatResponseError(error));
-    });
+export const getNotifications = createAsyncThunk(
+  paths.account.notifications,
+  async () => {
+    const response = await request.get(paths.account.notifications);
+    return response.json();
+  }
+)
+
+export const updateNotificationStorage = createAsyncThunk(
+  paths.account.notification,
+  async (notification: INotification) => {
+    const response: Response = await request.put(paths.account.notification, notification)
+    return response.json();
   }
 )
 
 export const createPassword = createAsyncThunk(
-  'account/signin',
-  async (data: CreatePasswordParams, thunkAPI) => {
-    const {rejectWithValue} = thunkAPI;
-    return axios.post(
-      `${process.env.REACT_APP_API_SERVICE}/account/signin`,
-      JSON.stringify(data),
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    ).catch((error) => {
-      return rejectWithValue(formatResponseError(error));
-    });
+  paths.account.password,
+  async (data: CreatePasswordParams) => {
+    const response: Response = await request.post(paths.account.password, data);
+    return response.json();
   }
 )

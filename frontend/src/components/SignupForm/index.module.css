@@ -11,26 +11,6 @@
     letter-spacing: 2px;
 }
 
-.signin-form-icons-container {
-    display: flex;
-    align-items: center;
-}
-
-.signin-form-icons-container svg {
-    max-width: 28px;
-    margin: 0 5px;    
-}
-
-.signin-form-social-media {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.signin-form-social-media > p {
-    font-size: 14px;
-}
-
 .sign-in-error-container {
     color: var(--fh-palette-error-main);
 }

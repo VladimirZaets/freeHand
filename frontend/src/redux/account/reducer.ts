@@ -1,48 +1,58 @@
 import { createSlice } from '@reduxjs/toolkit'
-import { IAccount } from '../../types/account'
-import { getUserByToken, getSocialSigninOptions } from './actions';
-import { asyncStatuses } from '../status';
-
+import { getUser, getNotifications, updateNotificationStorage } from './actions';
+// @ts-ignore
+import { INotification } from '../../components/Notification';
+//@ts-ignore
+import { IAccount } from './reducer';
 
 const initialState: IAccount = {
-  user: {
-    request: {
-      status: asyncStatuses.initial
-    }
-  },
-  signin: {
-    socialOptions: {
-      request: {
-        status: asyncStatuses.initial, 
-      },
-      data: []
-    }    
-  }
-  
+  notifications: []
 }
 
-const getUserByTokenCb = (state:IAccount, action:any) => {
-  state.user.data = action.payload || null;
-  state.user.request.requestId = action.meta.requestId;
-  state.user.request.status = action.meta.requestStatus;
-}
-
-const getSocialSigninOptionsCb = (state:IAccount, action:any) => {
-  state.signin.socialOptions.data = action.payload || null;
-  state.signin.socialOptions.request.requestId = action.meta.requestId;
-  state.signin.socialOptions.request.status = action.meta.requestStatus;            
+const getUserCb = (state:IAccount, action:any) => {
+  state.user = action.payload || undefined;
 }
 
 export const accountSlice = createSlice({
   name: 'account',
   initialState,
-  reducers: {},
+  reducers: {
+    updateNotification(state, action) {
+      state.notifications = [
+        ...state.notifications.filter((notification: INotification) => notification.id !== action.payload.id),
+        action.payload
+      ]
+    },
+    resetUser(state) {
+      state.user = undefined;
+    }
+  },
   extraReducers: (builder) => {
-    builder.addCase(getUserByToken.fulfilled, getUserByTokenCb);
-    builder.addCase(getUserByToken.pending, getUserByTokenCb);
-    builder.addCase(getSocialSigninOptions.fulfilled, getSocialSigninOptionsCb);
-    builder.addCase(getSocialSigninOptions.pending, getSocialSigninOptionsCb);   
+    builder.addCase(getUser.fulfilled, getUserCb);
+    builder.addCase(getUser.pending, getUserCb);
+    builder.addCase(getNotifications.fulfilled, getNotificationsCb);
+    builder.addCase(updateNotificationStorage.fulfilled, updateNotificationStorageCb)
   },
 })
+
+const getNotificationsCb = (state:IAccount, action:any) => {
+  state.notifications = action.payload || [];
+}
+
+const updateNotificationStorageCb = (state:IAccount, action:any) => {
+  if (action.payload.response?.error) {
+    state.notifications = [
+      ...state.notifications.filter((notification: INotification) => notification.id !== action.payload.notification.id),
+      action.payload.notification
+    ]
+  }
+  state.notifications = [...state.notifications]
+}
+
+export const {
+  updateNotification,
+  resetUser
+} = accountSlice.actions
+
 
 export default accountSlice.reducer

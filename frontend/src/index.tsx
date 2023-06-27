@@ -1,42 +1,45 @@
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import { Provider } from 'react-redux'
+import {Provider} from 'react-redux'
 import reportWebVitals from './reportWebVitals';
-import BaseLayoutRouter from './routes/BaseLayoutRouter'
+import Base from './routes/Layout'
 import store from './store'
 import theme from './theme'
-import { BrowserRouter,Routes,Route } from "react-router-dom";
-import InitialDataLoader from './components/InitialDataLoader';
+import {BrowserRouter, Route, Routes} from "react-router-dom";
 import LoadingBackdrop from './components/LoadingBackdrop';
-import { Experimental_CssVarsProvider as CssVarsProvider } from '@mui/material/styles';
+import {Experimental_CssVarsProvider as CssVarsProvider} from '@mui/material/styles';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
+import {LocalizationProvider} from '@mui/x-date-pickers';
+import {AdapterDateFns} from '@mui/x-date-pickers/AdapterDateFns'
+import RequestHandler from "./layout/RequestHandler";
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
 
-root.render(  
+root.render(
   <CssVarsProvider theme={theme}>
-    <BrowserRouter>      
+    <BrowserRouter>
       <Provider store={store}>
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <InitialDataLoader/>
-          <LoadingBackdrop/>
-          <Routes>
-            <Route path="/" element={<div>
-              <BaseLayoutRouter />
-              <a href={`${process.env.REACT_APP_API_SERVICE}/auth/github/login?site=${process.env.REACT_APP_SITE}&from=${process.env.REACT_APP_FRONTEND_SERVICE}/account/create`} onClick={() => window.close()}>github</a>
-              <br></br>
-            </div>} />
-            <Route path="/*" element={<BaseLayoutRouter />} />
-          </Routes>
-        </LocalizationProvider>
-      </Provider>      
+        <RequestHandler>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <LoadingBackdrop/>
+            <Routes>
+              <Route path="*" element={<div>
+                <Base/>
+                <a
+                  href={`${process.env.REACT_APP_API_SERVICE}/auth/github/login?site=${process.env.REACT_APP_SITE}&from=${process.env.REACT_APP_FRONTEND_SERVICE}/account/create`}
+                  onClick={() => window.close()}>github</a>
+                <br></br>
+              </div>}/>
+              <Route path="*" element={<Base/>}/>
+            </Routes>
+          </LocalizationProvider>
+        </RequestHandler>
+      </Provider>
     </BrowserRouter>
   </CssVarsProvider>
 );

@@ -3,6 +3,7 @@ package store
 import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"log"
 	"time"
 )
 
@@ -26,14 +27,19 @@ func NewNotificationService() *NotificationService {
 	}
 }
 
-func (n *NotificationService) SetConnection(conn *sqlx.DB) {
-	n.conn = conn
+func (s *NotificationService) SetConnection(conn *sqlx.DB) {
+	s.conn = conn
 }
 
 func (n *NotificationService) Create(notification Notification) error {
-	fmt.Printf(n.getCreateSqlStatement())
+	if notification.Id == "" {
+		id, err := RandToken()
+		if err != nil {
+			return err
+		}
+		notification.Id = id
+	}
 
-	fmt.Println(notification)
 	_, err := n.conn.NamedExec(n.getCreateSqlStatement(), notification)
 	if err != nil {
 		return err
@@ -41,9 +47,35 @@ func (n *NotificationService) Create(notification Notification) error {
 	return nil
 }
 
-//update notification
+func (n *NotificationService) List(id string) ([]Notification, error) {
+	result := []Notification{}
+	selectString := fmt.Sprintf("SELECT * FROM %s WHERE user_id = $1", n.table)
+	notification := Notification{}
+	rows, err := n.conn.Queryx(selectString, id)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		err := rows.StructScan(&notification)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		result = append(result, notification)
+	}
+
+	return result, nil
+}
+
 func (n *NotificationService) Update(notification Notification) error {
-	_, err := n.conn.NamedExec(n.getCreateSqlStatement(), notification)
+	if notification.Id == "" {
+		id, err := RandToken()
+		if err != nil {
+			return err
+		}
+		notification.Id = id
+	}
+
+	_, err := n.conn.NamedExec(n.getUpdateSqlStatement(), notification)
 	if err != nil {
 		return err
 	}
@@ -61,6 +93,13 @@ func (n *NotificationService) Delete(id string) error {
 func (n *NotificationService) getCreateSqlStatement() string {
 	return fmt.Sprintf(
 		"INSERT INTO %s (id, user_id, message, is_read) VALUES (:id, :user_id, :message, :is_read)",
+		n.table,
+	)
+}
+
+func (n *NotificationService) getUpdateSqlStatement() string {
+	return fmt.Sprintf(
+		"UPDATE %s SET is_read=:is_read WHERE :id=:id",
 		n.table,
 	)
 }

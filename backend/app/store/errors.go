@@ -1,5 +1,7 @@
 package store
 
-import "errors"
+import (
+	"errors"
+)
 
-var ErrorUserExist error = errors.New("Entity already exist")
+var ErrorAlreadyExist error = errors.New("Entity already exist")

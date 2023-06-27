@@ -9,16 +9,29 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type DataStore struct {
-	conn       *sqlx.DB
-	connString string
-	driver     string
-	S          *Services
+type UserManager interface {
+	GetById(id string) (User, error)
+	GetByEmail(email string) (User, error)
+	CreateIfNotExists(User) error
 }
 
-type Services struct {
-	User         *UserService
-	Notification *NotificationService
+type NotificationManager interface {
+	Create(notification Notification) error
+	List(userId string) ([]Notification, error)
+	Update(notification Notification) error
+}
+
+type EntityMapper interface {
+	User() UserManager
+	Notification() NotificationManager
+}
+
+type DataStore struct {
+	conn         *sqlx.DB
+	connString   string
+	driver       string
+	user         *UserService
+	notification *NotificationService
 }
 
 type DataStoreParams struct {
@@ -44,12 +57,10 @@ func NewDataStore(params DataStoreParams) *DataStore {
 	)
 
 	return &DataStore{
-		connString: connStr,
-		driver:     params.Driver,
-		S: &Services{
-			User:         NewUserService(),
-			Notification: NewNotificationService(),
-		},
+		connString:   connStr,
+		driver:       params.Driver,
+		user:         NewUserService(),
+		notification: NewNotificationService(),
 	}
 }
 
@@ -61,9 +72,17 @@ func (d *DataStore) Connect() error {
 		return err
 	}
 	d.conn = db
-	d.S.User.SetConnection(db)
-	d.S.Notification.SetConnection(db)
+	d.user.SetConnection(db)
+	d.notification.SetConnection(db)
 	return nil
+}
+
+func (d *DataStore) User() UserManager {
+	return d.user
+}
+
+func (d *DataStore) Notification() NotificationManager {
+	return d.notification
 }
 
 func RandToken() (string, error) {

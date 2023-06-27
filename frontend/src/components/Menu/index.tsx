@@ -19,9 +19,9 @@ const Menu = ({ items }: MenuPropsType) => {
   return <div className="side-menu">
     <Paper sx={{ width: 320, maxWidth: '100%' }}>
       <MenuList>
-        {items.map(item => {
+        {items.map((item, i) => {
           return (
-            <MenuItem>
+            <MenuItem key={i}>
               <ListItemText>{item.text}</ListItemText>
             </MenuItem>
           )

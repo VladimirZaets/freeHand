@@ -1,16 +1,17 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux'
 import accountReducer from './redux/account/reducer';
-import commonReducer from './redux/common/reducer'
+import commonReducer from './redux/common/reducer';
+import authReducer from './redux/auth/reducer';
 
 
 const store = configureStore({
   reducer: {
     account: accountReducer,
-    common: commonReducer
-  }  
+    common: commonReducer,
+    auth: authReducer,
+  }
 })
-
 
 export default store;
 

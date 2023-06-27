@@ -1,0 +1,13 @@
+resource "aws_rds_cluster" "postgresql" {
+  cluster_identifier      = "aurora-cluster-demo"
+  engine                  = "aurora-postgresql"
+  database_name           = "freehands"
+  master_username         = "foo"
+  master_password         = "masterpassword"
+  skip_final_snapshot     = true
+  apply_immediately       = true
+}
+
+output "aws_rds_cluster_endpoint" {
+  value = aws_rds_cluster.postgresql.endpoint
+}

@@ -1,7 +1,7 @@
-import CreatePasswordForm from "../../../components/SignupForm/CreatePassword";
+//@ts-ignore
+import CreatePasswordForm, {CreatePasswordParams} from "../../../components/CreatePasswordForm/index";
 import { useAppDispatch } from '../../../store';
 import { createPassword } from "../../../redux/account/actions";
-import {CreatePasswordParams} from '../../../types/account';
 import { useState } from "react";
 
 type Error = {

@@ -2,11 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/VladimirZaets/freehands/backend/app/services/auth"
+	"github.com/VladimirZaets/freehands/backend/app/services/rest"
 	"github.com/VladimirZaets/freehands/backend/app/store"
-	"github.com/go-pkgz/auth"
-	"github.com/go-pkgz/auth/token"
 	log "github.com/go-pkgz/lgr"
-	_ "github.com/lib/pq"
 	"io/ioutil"
 	"net/http"
 )
@@ -16,16 +15,14 @@ type SocialSigninOption struct {
 }
 
 type AccountCtrl struct {
-	Authorization *auth.Service
-	JWTService    *token.Service
-	DataService   *store.DataStore
+	JWTService  auth.TokenManager
+	DataService store.EntityMapper
 }
 
-func NewAccountCtrl(authorization *auth.Service, dataService *store.DataStore) *AccountCtrl {
+func NewAccountCtrl(tokenService auth.TokenManager, dataService store.EntityMapper) *AccountCtrl {
 	return &AccountCtrl{
-		Authorization: authorization,
-		JWTService:    authorization.TokenService(),
-		DataService:   dataService,
+		JWTService:  tokenService,
+		DataService: dataService,
 	}
 }
 
@@ -38,35 +35,35 @@ func (a *AccountCtrl) createUser(w http.ResponseWriter, r *http.Request) {
 	var user store.User
 	if err := json.Unmarshal(u, &user); err != nil {
 		log.Printf("[ERROR] Decoding user %+v", err)
-		RespJSON(w, http.StatusBadRequest, map[string]interface{}{"message": "Bad request"})
+		rest.RespJSON(w, http.StatusBadRequest, map[string]interface{}{"message": "Bad request"})
 		return
 	}
 
 	var typeResolving TypeResolving
 	if err := json.Unmarshal(u, &typeResolving); err != nil {
 		log.Printf("[ERROR] Decoding user %+v", err)
-		RespJSON(w, http.StatusBadRequest, map[string]interface{}{"message": "Bad request"})
+		rest.RespJSON(w, http.StatusBadRequest, map[string]interface{}{"message": "Bad request"})
 		return
 	}
 
-	err = a.DataService.S.User.CreateIfNotExists(user)
+	err = a.DataService.User().CreateIfNotExists(user)
 
-	if err == store.ErrorUserExist {
+	if err == store.ErrorAlreadyExist {
 		log.Printf("[ERROR] %+v", err)
-		RespJSON(w, http.StatusConflict, map[string]interface{}{"message": "User already exists"})
+		rest.RespJSON(w, http.StatusConflict, map[string]interface{}{"message": "User already exists"})
 		return
 	}
 
 	if err != nil {
 		log.Printf("[ERROR] Creating user %+v", err)
-		RespJSON(w, http.StatusInternalServerError, map[string]interface{}{"message": "Internal server error"})
+		rest.RespJSON(w, http.StatusInternalServerError, map[string]interface{}{"message": "Internal server error"})
 		return
 	}
 
-	RespJSON(w, http.StatusOK, map[string]interface{}{"message": "Ok"})
+	rest.RespJSON(w, http.StatusOK, map[string]interface{}{"message": "Ok"})
 }
 
-func (a *AccountCtrl) getUserInfo(w http.ResponseWriter, r *http.Request) {
+func (a *AccountCtrl) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 	claims, _, err := a.JWTService.Get(r)
 	if err != nil {
 		log.Printf("[ERROR] Getting claim %+v", err)

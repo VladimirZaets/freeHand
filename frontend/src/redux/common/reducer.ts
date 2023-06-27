@@ -1,25 +1,14 @@
 import {createSlice} from '@reduxjs/toolkit'
-//import {createNotification} from './actions';
-
-interface INotification {
-  isOpen: boolean
-  message: any
-  type?: string
-  duration?: number
-  position?: {
-    vertical: string
-    horizontal: string
-  }
-}
-
-interface IinitialState {
-  isOpenLoadingBackdrop: boolean
-  notification: INotification
-}
+// @ts-ignore
+import {IinitialState} from './reducer'
 
 const initialState: IinitialState = {
   isOpenLoadingBackdrop: false,
-  notification: {
+  redirect: {
+    path: '',
+    redirect: false
+  },
+  alert: {
     isOpen: false,
     message: '',
     type: '',
@@ -28,7 +17,8 @@ const initialState: IinitialState = {
       vertical: 'right'
     },
     duration: 6000
-  }
+  },
+  userUpdateRequired: true
 }
 
 export const commonSlice = createSlice({
@@ -41,29 +31,48 @@ export const commonSlice = createSlice({
     openLoadingBackdrop(state) {
       console.log(state)
     },
-    createNotification(state, action) {
-      state.notification = {
-        ...state.notification,
+    createAlert(state, action) {
+      state.alert = {
+        ...state.alert,
         isOpen: true,
         message: action.payload.message,
         type: action.payload.type
       }
     },
-    closeNotification(state) {
-      state.notification = {
-        ...state.notification,
+    closeAlert(state) {
+      state.alert = {
+        ...state.alert,
         isOpen: false,
         message: '',
         type: ''
       }
+    },
+    setRedirect(state, action) {
+      state.redirect = action.payload
+    },
+    resetRedirect(state) {
+      state.redirect = {
+        path: '',
+        redirect: false
+      }
+    },
+    setUserUpdateRequired(state) {
+      state.userUpdateRequired = true
+    },
+    resetUserUpdateRequired(state) {
+      state.userUpdateRequired = false
     }
-  },
-  extraReducers: (builder) => {}
+  }
 })
 
 export const {
   closeLoadingBackdrop,
-  closeNotification,
-  createNotification
+  createAlert,
+  closeAlert,
+  setRedirect,
+  resetRedirect,
+  setUserUpdateRequired,
+  resetUserUpdateRequired
 } = commonSlice.actions
+
 export default commonSlice.reducer

@@ -2,9 +2,10 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/VladimirZaets/freehands/backend/app/services/auth"
 	"github.com/VladimirZaets/freehands/backend/app/store"
+	log "github.com/go-pkgz/lgr"
 	"net/http"
 	"sync"
 	"time"
@@ -14,55 +15,59 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
-	"github.com/go-pkgz/auth"
-	log "github.com/go-pkgz/lgr"
 	R "github.com/go-pkgz/rest"
 )
 
 type ctrl struct {
-	AccountCtrl *AccountCtrl
+	Account       *AccountCtrl
+	Notifications *NotificationsCtrl
 }
 
 type RestParams struct {
+	AppName          string
 	httpServer       *http.Server
 	httpsServer      *http.Server
 	AllowedHosts     []string
 	UpdateLimiter    float64
 	DisableSignature bool
 	Version          string
-	Authenticator    *auth.Service
-	DataService      *store.DataStore
+	Authenticator    auth.Manager
+	DataService      store.EntityMapper
 }
 
 type Rest struct {
-	httpServer       *http.Server
-	httpsServer      *http.Server
-	AllowedHosts     []string
-	lock             sync.Mutex
-	UpdateLimiter    float64
-	DisableSignature bool
-	Version          string
-	Authenticator    *auth.Service
-	DataService      *store.DataStore
-	Ctrl             *ctrl
-	AuthHandlers     *Handlers
+	AppName           string
+	httpServer        *http.Server
+	httpsServer       *http.Server
+	AllowedHosts      []string
+	lock              sync.Mutex
+	UpdateLimiter     float64
+	DisableSignature  bool
+	Version           string
+	Authenticator     auth.Manager
+	DataService       store.EntityMapper
+	Ctrl              ctrl
+	AuthHandlers      *auth.Handlers
+	CredentialChecker *auth.CredentialChecker
 }
 
 func NewRest(params RestParams) *Rest {
-	ctrl := &ctrl{
-		AccountCtrl: NewAccountCtrl(params.Authenticator, params.DataService),
-	}
 	return &Rest{
+		AppName:          params.AppName,
 		AllowedHosts:     params.AllowedHosts,
 		UpdateLimiter:    params.UpdateLimiter,
 		DisableSignature: params.DisableSignature,
 		Version:          params.Version,
 		Authenticator:    params.Authenticator,
 		DataService:      params.DataService,
-		Ctrl:             ctrl,
-		httpServer:       params.httpServer,
-		httpsServer:      params.httpsServer,
-		AuthHandlers:     NewHandlers(params.DataService),
+		Ctrl: ctrl{
+			Account:       NewAccountCtrl(params.Authenticator.TokenService(), params.DataService),
+			Notifications: NewNotificationCtrl(params.Authenticator.TokenService(), params.DataService),
+		},
+		httpServer:        params.httpServer,
+		httpsServer:       params.httpsServer,
+		AuthHandlers:      auth.NewHandlers(params.DataService),
+		CredentialChecker: auth.NewCredentialChecker(params.DataService),
 	}
 }
 
@@ -79,7 +84,7 @@ func (s *Rest) Run(address string, port int) {
 }
 
 func (s *Rest) Shutdown() {
-	log.Print("[WARN] shutdown rest server")
+	log.Printf("[WARN] shutdown rest server")
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	s.lock.Lock()
@@ -87,15 +92,15 @@ func (s *Rest) Shutdown() {
 		if err := s.httpServer.Shutdown(ctx); err != nil {
 			log.Printf("[DEBUG] http shutdown error, %s", err)
 		}
-		log.Print("[DEBUG] shutdown http server completed")
+		log.Printf("[DEBUG] shutdown http server completed")
 	}
 
 	if s.httpsServer != nil {
-		log.Print("[WARN] shutdown https server")
+		log.Printf("[WARN] shutdown https server")
 		if err := s.httpsServer.Shutdown(ctx); err != nil {
 			log.Printf("[DEBUG] https shutdown error, %s", err)
 		}
-		log.Print("[DEBUG] shutdown https server completed")
+		log.Printf("[DEBUG] shutdown https server completed")
 	}
 	s.lock.Unlock()
 }
@@ -113,7 +118,7 @@ func (s *Rest) routes() chi.Router {
 	router := chi.NewRouter()
 	router.Use(middleware.Throttle(1000), middleware.RealIP, R.Recoverer(log.Default()))
 	if !s.DisableSignature {
-		router.Use(R.AppInfo("freehands", "vzaets", s.Version))
+		router.Use(R.AppInfo(s.AppName, fmt.Sprintf("%s corp.", s.AppName), s.Version))
 	}
 	router.Use(R.Ping)
 
@@ -127,7 +132,7 @@ func (s *Rest) routes() chi.Router {
 	})
 	router.Use(corsMiddleware.Handler)
 	authHandler, _ := s.Authenticator.Handlers()
-	//authMiddleware := s.Authenticator.Middleware()
+	authMiddleware := s.Authenticator.Middleware()
 
 	router.Route("/api/v1", func(rapi chi.Router) {
 		rapi.Group(func(ropen chi.Router) {
@@ -138,8 +143,10 @@ func (s *Rest) routes() chi.Router {
 		rapi.Group(func(ropen chi.Router) {
 			ropen.Use(middleware.Timeout(30 * time.Second))
 			ropen.Use(tollbooth_chi.LimitHandler(tollbooth.NewLimiter(10, nil)))
-			//ropen.Use(authMiddleware.Auth, middleware.NoCache)
-			ropen.Get("/user", s.Ctrl.AccountCtrl.getUserInfo)
+			ropen.Use(authMiddleware.Auth, middleware.NoCache)
+			ropen.Get("/user", s.Ctrl.Account.GetUserInfo)
+			ropen.Get("/user/notifications", s.Ctrl.Notifications.List)
+			ropen.Put("/user/notification", s.Ctrl.Notifications.Update)
 		})
 	})
 
@@ -152,17 +159,4 @@ func (s *Rest) updateLimiter() float64 {
 		lmt = s.UpdateLimiter
 	}
 	return lmt
-}
-
-func RespJSON(w http.ResponseWriter, code int, data map[string]interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	jsonResp, err := json.Marshal(data)
-	if err != nil {
-		log.Printf("[ERROR] can't marshal response, %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":"internal server error"}`))
-		return
-	}
-	w.Write(jsonResp)
 }

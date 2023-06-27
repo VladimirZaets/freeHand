@@ -1,0 +1,8 @@
+.email-verification-form-container {
+    margin: 100px auto;
+    width: 50%;
+    border: 1px solid var(--fh-palette-borders);
+    padding: 40px;
+    border-radius: var(--fh-shape-borderRadius);
+    max-width: 550px;
+}

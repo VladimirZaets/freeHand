@@ -1,6 +1,15 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { IAccount, ISignin, IUserRequest } from '../../types/account';
+//@ts-ignore
+import { IAccount, UserType } from './reducer';
 
-export const getAccountSelector = createSelector((state:{account:IAccount}) => state.account, (account:IAccount)=>account);
-export const getAccountSigninSelector = createSelector((state:{account:IAccount}) => state.account.signin, (signin:ISignin)=>signin);
-export const getAccountUserSelector = createSelector((state:{account:IAccount}) => state.account.user, (user:IUserRequest)=>user);
+export const getUserSelector = createSelector(
+  (state:{account:IAccount}) => state.account.user,
+  (user:UserType)=>user);
+
+export const getNotificationsSelector = createSelector(
+  (state:{account:IAccount}) => state.account,
+  (account:IAccount)=>[...account.notifications]
+    .sort((a, b) =>
+      (new Date(b.created_at)).getTime() - (new Date(a.created_at)).getTime()
+    )
+);
