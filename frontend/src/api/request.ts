@@ -1,5 +1,5 @@
 //@ts-ignore
-import {statusCodeMapType, requestsType} from "./request";
+import {statusCodeMapType, requestsType, responseType} from "./request";
 export const RequestStatusCodes = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
@@ -8,6 +8,7 @@ export const RequestStatusCodes = {
   BAD_GATEWAY: 502,
   SERVICE_UNAVAILABLE: 503,
   BAD_REQUEST: 400,
+  CONFLICT: 409,
 }
 
 class Request {
@@ -40,7 +41,7 @@ class Request {
     this.statusCodeMap[statusCode] = cb
   }
 
-  executeCallback(path:string, response:Response) {
+  executeCallback(path:string, response:responseType) {
     if (this.requests[path] && this.requests[path][response.status]) {
       this.requests[path][response.status](response)
     } else if (this.statusCodeMap[response.status]) {
@@ -58,11 +59,23 @@ class Request {
       },
     });
 
+    let body;
+    try {
+      body = await response.json()
+    } catch (e) {
+      body = {}
+    }
+
+    const result = {
+      ok: response.ok,
+      status: response.status,
+      body
+    }
+    this.executeCallback(path, result)
     if (response.ok) {
-      return response;
+      return Promise.resolve(result);
     } else {
-      this.executeCallback(path, response)
-      return response;
+      return Promise.reject(result)
     }
   }
 
@@ -80,12 +93,18 @@ class Request {
       referrerPolicy: "no-referrer",
       body: JSON.stringify(data)
     });
+    const body = await response.json();
+    const result = {
+      ok: response.ok,
+      status: response.status,
+      body
+    }
 
+    this.executeCallback(path, result)
     if (response.ok) {
-      return response;
+      return Promise.resolve(result);
     } else {
-      this.executeCallback(path, response)
-      return response;
+      return Promise.reject(result)
     }
   }
 
@@ -100,11 +119,17 @@ class Request {
       body: JSON.stringify(data)
     });
 
+    const body = await response.json();
+    const result = {
+      ok: response.ok,
+      status: response.status,
+      body
+    }
+    this.executeCallback(path, result)
     if (response.ok) {
-      return response;
+      return Promise.resolve(result);
     } else {
-      this.executeCallback(path, response)
-      return response;
+      return Promise.reject(result)
     }
   }
 
@@ -118,11 +143,17 @@ class Request {
       },
     });
 
+    const body = await response.json();
+    const result = {
+      ok: response.ok,
+      status: response.status,
+      body
+    }
+    this.executeCallback(path, result)
     if (response.ok) {
-      return response;
+      return Promise.resolve(result);
     } else {
-      this.executeCallback(path, response)
-      return response;
+      return Promise.reject(result)
     }
   }
 }

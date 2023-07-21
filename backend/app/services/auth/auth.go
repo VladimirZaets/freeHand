@@ -58,6 +58,7 @@ func GetAuthenticator(
 	apiurl string,
 	address string,
 	cookieDomain string,
+	secret string,
 ) Manager {
 	return auth.NewService(auth.Opts{
 		URL:            apiurl,
@@ -67,7 +68,7 @@ func GetAuthenticator(
 		CookieDuration: time.Hour * 24,
 		DisableXSRF:    true,
 		SecretReader: token.SecretFunc(func(aud string) (string, error) {
-			return "secret", nil
+			return secret, nil
 		}),
 		AvatarStore:     avatar.NewNoOp(),
 		ClaimsUpd:       NewClaimUpdater(dataService),

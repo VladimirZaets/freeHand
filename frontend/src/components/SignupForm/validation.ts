@@ -20,6 +20,7 @@ export const validationSchema = {
   dateOfBirth: string(),
   state: string().min(2),
   primaryAccountType: string().required(),
+  "g-recaptcha-response": string(),
   passwordConfirm: string()
     .required('Field is required')
     .test("passwordConfirm", (value, context) => {

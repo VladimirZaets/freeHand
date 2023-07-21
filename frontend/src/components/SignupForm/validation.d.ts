@@ -20,6 +20,7 @@ export type ValidationType = {
 }
 
 export type ValidationSchemaType = {
+  "g-recaptcha-response": () => any;
   email: () => any;
   password: () => any;
   firstname: () => any;

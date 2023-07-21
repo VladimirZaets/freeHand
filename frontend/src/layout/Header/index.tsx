@@ -27,6 +27,7 @@ import {SigninParams} from "../../components/SignInForm";
 import accountRoutes from "../../routes/account/routes";
 import authRoutes from "../../routes/auth/routes";
 import {getAuthProvidersSelector} from "../../redux/auth/selectors";
+import ReCAPTCHA from "react-google-recaptcha";
 
 type HeaderProps = {
   toggleSideMenu: (openState: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => void;
@@ -56,6 +57,7 @@ export default function Header({toggleSideMenu}: HeaderProps) {
   const notifications = useAppSelector(getNotificationsSelector);
   const alertData = useAppSelector(getAlertSelector);
   const socialMediaOptionsState = useAppSelector(getAuthProvidersSelector)
+  const recaptchaRef = React.createRef();
   const signoutHandler = () => {
     dispatch(signout())
     dispatch(getAuthProviders())
@@ -84,7 +86,9 @@ export default function Header({toggleSideMenu}: HeaderProps) {
   }
   const handleSubmitLoginDropdown = async (data: SigninParams) => {
     handleMenuClose();
-    return await dispatch(signin(data)) as any;
+    const current = recaptchaRef.current as any;
+    data["g-recaptcha-response"] = await current.executeAsync();
+    await dispatch(signin(data));
   }
 
   return (
@@ -167,6 +171,11 @@ export default function Header({toggleSideMenu}: HeaderProps) {
       )}
       {!user?.id && <LoginMenu
         onClose={handleMenuClose}
+        captcha={<ReCAPTCHA
+          ref={recaptchaRef as any}
+          size="invisible"
+          sitekey="6LfE69YmAAAAAESDUjPk9DBCpNcmgN3Nu-7KwjJ9"
+        />}
         anchorEl={anchorEl}
         forgotPasswordLink={{
           onClick: handleMenuClose,

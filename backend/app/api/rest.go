@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/VladimirZaets/freehands/backend/app/services/auth"
+	"github.com/VladimirZaets/freehands/backend/app/services/mail"
 	"github.com/VladimirZaets/freehands/backend/app/store"
 	log "github.com/go-pkgz/lgr"
 	"net/http"
@@ -23,16 +24,31 @@ type ctrl struct {
 	Notifications *NotificationsCtrl
 }
 
+type MiddlewareManager interface {
+	Middleware(http.Handler) http.Handler
+}
+
+type Secrets struct {
+	EmailVerification string
+	PasswordReset     string
+	Auth              string
+}
+
 type RestParams struct {
-	AppName          string
-	httpServer       *http.Server
-	httpsServer      *http.Server
-	AllowedHosts     []string
-	UpdateLimiter    float64
-	DisableSignature bool
-	Version          string
-	Authenticator    auth.Manager
-	DataService      store.EntityMapper
+	AppName           string
+	httpServer        *http.Server
+	httpsServer       *http.Server
+	AllowedHosts      []string
+	UpdateLimiter     float64
+	DisableSignature  bool
+	Version           string
+	Authenticator     auth.Manager
+	DataService       store.EntityMapper
+	CaptchaMiddleware MiddlewareManager
+	EmailService      mail.Emailer
+	AuthHandlers      *auth.Handlers
+	CredentialChecker *auth.CredentialChecker
+	Secrets           Secrets
 }
 
 type Rest struct {
@@ -49,6 +65,8 @@ type Rest struct {
 	Ctrl              ctrl
 	AuthHandlers      *auth.Handlers
 	CredentialChecker *auth.CredentialChecker
+	Captcha           MiddlewareManager
+	EmailService      mail.Emailer
 }
 
 func NewRest(params RestParams) *Rest {
@@ -61,13 +79,25 @@ func NewRest(params RestParams) *Rest {
 		Authenticator:    params.Authenticator,
 		DataService:      params.DataService,
 		Ctrl: ctrl{
-			Account:       NewAccountCtrl(params.Authenticator.TokenService(), params.DataService),
-			Notifications: NewNotificationCtrl(params.Authenticator.TokenService(), params.DataService),
+			Account: NewAccountCtrl(
+				params.Authenticator.TokenService(),
+				params.DataService,
+				params.EmailService,
+				params.Secrets,
+			),
+			Notifications: NewNotificationCtrl(
+				params.Authenticator.TokenService(),
+				params.DataService,
+				params.EmailService,
+				params.Secrets,
+			),
 		},
 		httpServer:        params.httpServer,
 		httpsServer:       params.httpsServer,
-		AuthHandlers:      auth.NewHandlers(params.DataService),
-		CredentialChecker: auth.NewCredentialChecker(params.DataService),
+		Captcha:           params.CaptchaMiddleware,
+		AuthHandlers:      params.AuthHandlers,
+		CredentialChecker: params.CredentialChecker,
+		EmailService:      params.EmailService,
 	}
 }
 
@@ -138,7 +168,13 @@ func (s *Rest) routes() chi.Router {
 		rapi.Group(func(ropen chi.Router) {
 			ropen.Use(middleware.Timeout(30 * time.Second))
 			ropen.Use(tollbooth_chi.LimitHandler(tollbooth.NewLimiter(10, nil)))
+			ropen.Use(s.Captcha.Middleware)
 			ropen.Mount("/auth", authHandler)
+			ropen.Post("/auth/local/confirm", s.Ctrl.Account.EmailVerification)
+		})
+		rapi.Group(func(ropen chi.Router) {
+			ropen.Use(middleware.Timeout(30 * time.Second))
+			ropen.Use(tollbooth_chi.LimitHandler(tollbooth.NewLimiter(10, nil)))
 		})
 		rapi.Group(func(ropen chi.Router) {
 			ropen.Use(middleware.Timeout(30 * time.Second))

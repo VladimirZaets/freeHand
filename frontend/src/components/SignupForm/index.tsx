@@ -15,7 +15,7 @@ import  SocialAuthProviders, {AuthProvidersType} from "../SocialAuthProviders";
 //@ts-ignore
 import { SignupParams, ValidationFields, Fields, Common } from './index';
 import { Link as LinkRouter } from "react-router-dom";
-import { useState, FormEvent } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker/DatePicker';
 import statesJson from '../../static/states.json';
 //@ts-ignore
@@ -41,13 +41,15 @@ const SignupForm = (
     signupHandler,
     onFormChange,
     error = false,
-    errorMessage
+    errorMessage,
+    captcha,
   }: {
     socialMediaOptions: AuthProvidersType,
     signupHandler: (data: SignupParams) => void;
     onFormChange: (e?: any) => void;
     error?: boolean,
     errorMessage?: string
+    captcha?: React.ReactNode | null,
   }) => {
   const [fields, setFields] = useState<Fields>(formFields)
   const [validation, setValidation] = useState<ValidationType>(validationFields)
@@ -83,12 +85,15 @@ const SignupForm = (
 
     if (isValid) {
       setCommon((common:Common) => ({ ...common, isSubmitting: true }));
-      signupHandler(fields);
+      await signupHandler(fields);
       setCommon((common:Common) => ({ ...common, isSubmitting: false }));
     }
   }
   return (
     <div className="signup-form">
+      {
+        captcha || null
+      }
       <Box sx={{ p: 5, mx: "auto", my: 10 }} className={styles['signin-form-container']}>
         <Box className={styles['signin-form-title']} sx={{ mb: 3 }}>
           <Typography variant="h3" component="h3">
@@ -108,8 +113,10 @@ const SignupForm = (
         >
           {
             error &&
-            <Typography variant="body1" my={2} className={styles['sign-in-error-container']}>
-              {errorMessage}
+            <Typography dangerouslySetInnerHTML={{
+              __html: errorMessage || ''
+            }} variant="body1" my={2} className={styles['sign-in-error-container']}>
+
             </Typography>
           }
           <Grid container columnSpacing={2}>
@@ -305,7 +312,7 @@ const SignupForm = (
           </Button>
         </Box>
         {
-          socialMediaOptions.length &&
+          !!socialMediaOptions.length &&
           <SocialAuthProviders data={socialMediaOptions}/>
         }
         <LinkRouter to={'/account/password-forgot'}>
@@ -313,6 +320,13 @@ const SignupForm = (
             Forgot your password?
           </Typography>
         </LinkRouter>
+        {
+          captcha && <Box sx={{fontSize: "12px", display: "inline-block", mt:2}}>
+            This site is protected by reCAPTCHA and the Google&nbsp;
+            <a href="https://policies.google.com/privacy">Privacy Policy</a> and&nbsp;
+            <a href="https://policies.google.com/terms">Terms of Service</a> apply.
+          </Box>
+        }
       </Box>
     </div>
   )

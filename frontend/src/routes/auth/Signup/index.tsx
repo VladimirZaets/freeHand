@@ -2,11 +2,13 @@
 import SignupForm, {SignupParams} from "../../../components/SignupForm/index";
 import { useAppSelector, useAppDispatch } from '../../../store';
 import { useNavigate } from 'react-router-dom';
-import {getUser} from "../../../redux/account/actions";
 import {signup} from "../../../redux/auth/actions";
-import { createAlert } from "../../../redux/common/reducer";
-import { useState } from "react";
+import React, { useState } from "react";
 import {getAuthProvidersSelector} from "../../../redux/auth/selectors";
+import ReCAPTCHA from "react-google-recaptcha";
+//@ts-ignore
+import {responseType, RequestStatusCodes} from "../../../api/request";
+import paths from "../../../api/paths";
 
 type Error = {
   error: boolean
@@ -18,23 +20,22 @@ const Signup = () => {
   const dispatch = useAppDispatch();
   const [error, setError] = useState<Error>({ error: false })
   const navigate = useNavigate();
+  const recaptchaRef = React.createRef();
   const handleSubmit = async (data:SignupParams) => {
-    const response = await dispatch(signup(data)) as any;
-    if (!response.ok && response.status === 409) {
-      const message = `User with email "${data.email}" already exists. Please login.`;
-      setError((error) => ({...error, 'error': true, message}));
+    const current = recaptchaRef.current as any;
+
+    data["g-recaptcha-response"] = await current.executeAsync();
+    try {
+      await dispatch(signup(data)) as any;
+      navigate('/');
+    } catch (error:responseType) {
       window.scrollTo(0, 0);
-    } else if (response.ok) {
-      const message = 'Service is unavailable. Please reload the page or try again later.';
-      setError((error) => ({...error, 'error': true, message}));
-      window.scrollTo(0, 0);
-    } else {
-      dispatch(createAlert({
-        type: 'success',
-        message: 'Account is created successfully. Please check your email to verify your account.'
-      }));
-      dispatch(getUser())
-      navigate(`/`);
+      current.reset();
+      let message:string
+      error.status === RequestStatusCodes.CONFLICT ?
+        message = `User with email "${data.email}" already exists. Go to <a href="${paths.auth.signin}">login</a>.` :
+        message = 'Service is unavailable. Please reload the page or try again later.';
+      setError((error) => ({...error, 'error': true, message}))
     }
   }
   const onFormChange = () => {
@@ -43,6 +44,11 @@ const Signup = () => {
 
   return <div className="login-content">
     <SignupForm
+      captcha={<ReCAPTCHA
+        ref={recaptchaRef as any}
+        size="invisible"
+        sitekey=""
+      />}
       socialMediaOptions={socialMediaOptionsState}
       signupHandler={handleSubmit}
       onFormChange={onFormChange}

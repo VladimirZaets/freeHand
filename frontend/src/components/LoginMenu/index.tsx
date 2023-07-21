@@ -4,9 +4,6 @@ import React from 'react';
 import SigninForm from "../SignInForm";
 // @ts-ignore
 import {AuthProvidersType} from "../SocialAuthProviders";
-
-import accountRoutes from "../../routes/account/routes";
-import authRoutes from "../../routes/auth/routes";
 // @ts-ignore
 import {SigninHandlerType, ForgotPasswordLinkType, CreateAccountLinkType} from "../SignInForm";
 
@@ -16,7 +13,8 @@ const LoginMenu = ({
   onSubmitHandler,
   forgotPasswordLink,
   createAccountLink,
-  socialAuthProvidersData
+  socialAuthProvidersData,
+  captcha,
 }: {
   createAccountLink:CreateAccountLinkType,
   forgotPasswordLink:ForgotPasswordLinkType,
@@ -24,6 +22,7 @@ const LoginMenu = ({
   onClose: (e: React.MouseEvent<HTMLElement>) => void,
   anchorEl: null | HTMLElement,
   socialAuthProvidersData: AuthProvidersType
+  captcha: React.ReactNode | null,
 }) => {
   return (
     <Popover
@@ -48,6 +47,7 @@ const LoginMenu = ({
         createAccountLink={createAccountLink}
         signinHandler={onSubmitHandler}
         socialAuthProvidersData={socialAuthProvidersData}
+        captcha={captcha}
       />
     </Popover>
   )

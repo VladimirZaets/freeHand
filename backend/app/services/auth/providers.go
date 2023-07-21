@@ -71,19 +71,23 @@ func (p LocalHandler) Name() string { return p.ProviderName }
 func (p LocalHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	creds, err := p.getCredentials(w, r)
 	if err != nil {
+		fmt.Println(err)
 		rest.RespJSON(w, http.StatusBadRequest, err)
 		return
 	}
+
 	if p.CredChecker == nil {
 		fmt.Println("no credential checker")
 		rest.RespJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "no credential checker"})
 		return
 	}
 	ok, err := p.CredChecker.Check(creds.Email, creds.Password)
+
 	if err != nil {
 		rest.RespJSON(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	if !ok {
 		fmt.Println("email or password is incorrect")
 		rest.RespJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "email or password is incorrect"})
@@ -113,7 +117,6 @@ func (p LocalHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		rest.RespJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "failed to set token"})
 		return
 	}
-
 	rest.RespJSON(w, http.StatusOK, map[string]interface{}{"message": "ok"})
 }
 
@@ -216,6 +219,7 @@ func (p LocalHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.TokenService.Reset(w)
+	rest.RespJSON(w, http.StatusOK, map[string]interface{}{"message": "ok"})
 }
 
 func (p LocalHandler) getTokenUser(u *store.User) token.User {

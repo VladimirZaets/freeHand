@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"github.com/VladimirZaets/freehands/backend/app/services/auth"
+	"github.com/VladimirZaets/freehands/backend/app/services/mail"
 	"github.com/VladimirZaets/freehands/backend/app/services/rest"
 	"github.com/VladimirZaets/freehands/backend/app/store"
 	log "github.com/go-pkgz/lgr"
@@ -13,12 +14,21 @@ import (
 type NotificationsCtrl struct {
 	DataService store.EntityMapper
 	JWTService  auth.TokenManager
+	MailService mail.Emailer
+	Secrets     Secrets
 }
 
-func NewNotificationCtrl(tokenService auth.TokenManager, dataService store.EntityMapper) *NotificationsCtrl {
+func NewNotificationCtrl(
+	tokenService auth.TokenManager,
+	dataService store.EntityMapper,
+	mailer mail.Emailer,
+	secrets Secrets,
+) *NotificationsCtrl {
 	return &NotificationsCtrl{
 		JWTService:  tokenService,
 		DataService: dataService,
+		MailService: mailer,
+		Secrets:     secrets,
 	}
 }
 

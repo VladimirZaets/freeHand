@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jessevdk/go-flags"
 	"os"
 
@@ -30,6 +31,7 @@ func main() {
 		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
 			os.Exit(0)
 		} else {
+			fmt.Println(flagsErr)
 			os.Exit(1)
 		}
 	}

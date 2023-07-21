@@ -141,7 +141,7 @@ func (s *UserService) GetByEmail(email string) (User, error) {
 	var user User
 	err := s.conn.Get(&user, sqlStatement, email)
 	if err != nil {
-		log.Fatal(err)
+		return User{}, err
 	}
 
 	return user, nil
@@ -153,10 +153,19 @@ func (s *UserService) GetById(id string) (User, error) {
 	var user User
 	err := s.conn.Get(&user, sqlStatement, id)
 	if err != nil {
-		log.Fatal(err)
+		return User{}, err
 	}
 
 	return user, nil
+}
+
+func (s *UserService) Update(user User) error {
+	_, err := s.conn.NamedExec(s.getUpdateSqlStatement(user), user)
+	if err != nil {
+		fmt.Printf("error updating user: %s", err)
+		return err
+	}
+	return nil
 }
 
 func (s *UserService) CreateOrUpdate(user *User) error {
@@ -173,6 +182,36 @@ func (s *UserService) getCreateSqlStatement() string {
 				(id, firstname, lastname, email, primary_type, verified, avatar_url, password, dob) 
 				VALUES (:id, :firstname, :lastname, :email, :primary_type, :verified, :avatar_url, :password, :dob)`,
 		s.table,
+	)
+}
+
+func (s *UserService) getUpdateSqlStatement(user User) string {
+	setStatement := "email=:email, primary_type=:primary_type, verified=:verified"
+	if user.LastName != "" {
+		setStatement += ", lastname=:lastname"
+	}
+
+	if user.FirstName != "" {
+		setStatement += ", firstname=:firstname"
+	}
+
+	if user.Phone != "" {
+		setStatement += ", phone=:phone"
+	}
+	if user.AvatarUrl != "" {
+		setStatement += ", avatar_url=:avatar_url"
+	}
+	if user.Password != "" {
+		setStatement += ", password=:password"
+	}
+	if !user.DOB.IsZero() {
+		setStatement += ", dob=:dob"
+	}
+
+	return fmt.Sprintf(
+		"UPDATE %s SET %s WHERE id=:id",
+		s.table,
+		setStatement,
 	)
 }
 

@@ -2,10 +2,12 @@ import {createAsyncThunk} from "@reduxjs/toolkit";
 import paths from "../../api/paths";
 //@ts-ignore
 import {SigninParams} from "../../components/SignInForm";
-import request from "../../api/request";
+//@ts-ignore
+import request, {responseType} from "../../api/request";
 import {resetUser} from "../account/reducer";
 import {getUser} from "../account/actions";
 import Localstorage from "../../localstorage";
+import {createAlert} from "../common/reducer";
 
 export const signout = () => {
   return async (dispatch: any) => {
@@ -15,51 +17,85 @@ export const signout = () => {
       return Promise.reject(e);
     }
     dispatch(resetUser());
-    Localstorage.removeUser();
   }
 }
 
 export const signin = (data: SigninParams) => {
   return async (dispatch: any) => {
-    let response:Response;
-    try {
-      response = await dispatch(signinAsync(data));
-    } catch (e) {
-      return Promise.reject(e);
+    let response:responseType;
+    response = await dispatch(signinAsync(data)).unwrap();
+    if (response.ok) {
+      dispatch(getUser())
+      return Promise.resolve(response)
     }
-    dispatch(getUser())
-    return response
+    return Promise.reject(response);
   }
 }
 
-export const signup = createAsyncThunk(
+export const signup = (data: SigninParams) => {
+  return async (dispatch: any) => {
+    let response:responseType;
+    response = await dispatch(signupAsync(data)).unwrap();
+    if (response.ok) {
+      dispatch(createAlert({
+        type: 'success',
+        message: 'Account is created successfully. Please check your email to verify your account.'
+      }));
+      dispatch(getUser())
+      return Promise.resolve(response);
+    }
+    return Promise.reject(response);
+  }
+}
+
+export const signupAsync = createAsyncThunk(
   paths.auth.signup,
   async (data: SigninParams) => {
-    const response = await request.post(paths.auth.signup, data);
-    return response.json();
+    let response:responseType;
+    try {
+      response = await request.post(paths.auth.signup, data);
+    } catch (e) {
+      return e;
+    }
+    return response;
   }
 )
 
 export const signinAsync = createAsyncThunk(
   paths.auth.signin,
   async (data: SigninParams) => {
-    const response:any = await request.post(paths.auth.signin, data);
-    return response.json();
+    let response:responseType;
+    try {
+      response = await request.post(paths.auth.signin, data);
+    } catch (e) {
+      return e;
+    }
+    return response
   }
 )
 
 export const signoutAsync = createAsyncThunk(
   paths.auth.signout,
   async () => {
-    const response:Response = await request.post(paths.auth.signout, {});
-    return response.json();
+    let response:responseType;
+    try {
+      response = await request.post(paths.auth.signout, {});
+    } catch (e) {
+      return e;
+    }
+    return response;
   }
 )
 
 export const getAuthProviders = createAsyncThunk(
   paths.auth.providers,
   async () => {
-    const response:Response = await request.get(paths.auth.providers);
-    return response.json();
+    let response:responseType;
+    try {
+      response = await request.get(paths.auth.providers);
+    } catch (e) {
+      return e;
+    }
+    return response;
   }
 )

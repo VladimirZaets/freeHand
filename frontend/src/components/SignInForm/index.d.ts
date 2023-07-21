@@ -17,6 +17,7 @@ export type SigninParams = {
   email: string,
   password: string
   keepSignin?: boolean
+  "g-recaptcha-response"?: string
 }
 
 export type Fields = SigninParams
@@ -28,11 +29,13 @@ export type Common = {
 export type ValidationSchema = {
   email: () => boolean;
   password: () => boolean;
+  "g-recaptcha-response": () => boolean;
 }
 
 export type Validation = {
   email: boolean,
   password: boolean
+  "g-recaptcha-response": boolean
 }
 
 type Error = {

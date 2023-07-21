@@ -1,5 +1,5 @@
 import {createSlice} from "@reduxjs/toolkit";
-import { signup, getAuthProviders, signoutAsync, signinAsync} from "./actions";
+import { signupAsync, getAuthProviders, signoutAsync, signinAsync} from "./actions";
 // @ts-ignore
 import {IAuth} from "./reducer";
 
@@ -14,13 +14,13 @@ export const authSlice = createSlice({
   extraReducers: (builder) => {
     builder.addCase(signinAsync.fulfilled, signinCb);
     builder.addCase(signoutAsync.fulfilled, signunCb);
-    builder.addCase(signup.fulfilled, signoutCb);
+    builder.addCase(signupAsync.fulfilled, signoutCb);
     builder.addCase(getAuthProviders.fulfilled, getAuthProvidersCb);
   },
 });
 
 const getAuthProvidersCb = (state:IAuth, action:any) => {
-  state.authProviders = action.payload || state.authProviders;
+  state.authProviders = action.payload?.body || state.authProviders;
 }
 const signinCb = () => {}
 const signunCb = () => {}

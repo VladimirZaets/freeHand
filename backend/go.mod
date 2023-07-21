@@ -10,12 +10,14 @@ require (
 	github.com/go-pkgz/auth v1.21.0
 	github.com/go-pkgz/lgr v0.11.0
 	github.com/go-pkgz/rest v1.17.0
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/jmoiron/sqlx v1.3.5
+	github.com/k3a/html2text v1.2.1
 	github.com/lib/pq v1.10.9
-	github.com/markbates/goth v1.77.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/oauth2 v0.8.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
 
 require (
@@ -26,7 +28,6 @@ require (
 	github.com/go-oauth2/oauth2/v4 v4.5.2 // indirect
 	github.com/go-pkgz/expirable-cache v0.1.0 // indirect
 	github.com/go-pkgz/repeater v1.1.3 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
@@ -48,4 +49,5 @@ require (
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )

@@ -3,7 +3,8 @@ const routes = {
   pathname: {
     signin: 'signin',
     signup: 'signup',
-    confirmEmail: 'signup/confirm/:hash'
+    confirmEmail: 'email/confirm/:hash',
+    passwordForgot: 'password/forgot',
   }
 }
 export default routes;

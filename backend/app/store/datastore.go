@@ -13,6 +13,7 @@ type UserManager interface {
 	GetById(id string) (User, error)
 	GetByEmail(email string) (User, error)
 	CreateIfNotExists(User) error
+	Update(User) error
 }
 
 type NotificationManager interface {

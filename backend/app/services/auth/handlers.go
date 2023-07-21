@@ -5,21 +5,38 @@ import (
 	"fmt"
 	"github.com/VladimirZaets/freehands/backend/app/services/rest"
 	"github.com/VladimirZaets/freehands/backend/app/store"
+	"github.com/VladimirZaets/freehands/backend/app/templates"
 	"github.com/go-pkgz/auth/provider"
 	"github.com/go-pkgz/auth/token"
 	log "github.com/go-pkgz/lgr"
+	"github.com/golang-jwt/jwt"
 	"golang.org/x/oauth2"
 	"net/http"
 	"strings"
+	"time"
 )
 
-type Handlers struct {
-	DataService store.EntityMapper
+type Mailer interface {
+	SendTemplate(template string, data interface{}, to string, subject string) error
 }
 
-func NewHandlers(dataStore store.EntityMapper) *Handlers {
+type Handlers struct {
+	DataService        store.EntityMapper
+	EmailService       Mailer
+	ConfirmationParams ConfirmationParams
+}
+
+type ConfirmationParams struct {
+	Secret string
+	TTL    time.Duration
+	URL    string
+}
+
+func NewHandlers(dataStore store.EntityMapper, mailer Mailer, confirmationParams ConfirmationParams) *Handlers {
 	return &Handlers{
-		DataService: dataStore,
+		DataService:        dataStore,
+		EmailService:       mailer,
+		ConfirmationParams: confirmationParams,
 	}
 }
 
@@ -44,6 +61,25 @@ func (h *Handlers) GetLocalAuthUserHandler() AuthHook {
 			rest.RespJSON(w, http.StatusInternalServerError, map[string]interface{}{"error": "Something went wrong"})
 			return err
 		}
+
+		claim := jwt.StandardClaims{
+			Id:        user.Id,
+			Issuer:    fmt.Sprintf("%s.com", Audience),
+			Audience:  Audience,
+			IssuedAt:  time.Now().Unix(),
+			Subject:   user.Email,
+			ExpiresAt: time.Now().Add(h.ConfirmationParams.TTL).Unix(),
+		}
+
+		jtoken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
+		tokenString, err := jtoken.SignedString([]byte(h.ConfirmationParams.Secret))
+
+		subject := fmt.Sprintf("Welcome to FreeHands, %s!", user.FirstName)
+		err = h.EmailService.SendTemplate("verification.html", &templates.Verification{
+			FirstName: user.FirstName,
+			URL:       fmt.Sprintf("%s/auth/email/confirm/%s", h.ConfirmationParams.URL, tokenString),
+			Subject:   subject,
+		}, user.Email, subject)
 
 		err = h.DataService.Notification().Create(store.Notification{
 			UserId:  user.Id,

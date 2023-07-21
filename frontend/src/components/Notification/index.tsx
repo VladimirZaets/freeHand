@@ -72,7 +72,7 @@ const NotificationsList = (
       }}
     >
       <List>
-        {[items.map((value) => (
+        {!items.length ? <Box p={2}>No notifications yet</Box> : [items.map((value) => (
           <Box key={value.id} onClick={handleClick(value)}>
             <ListItem
               disablePadding

@@ -8,7 +8,7 @@ export const getUserSelector = createSelector(
 
 export const getNotificationsSelector = createSelector(
   (state:{account:IAccount}) => state.account,
-  (account:IAccount)=>[...account.notifications]
+  (account:IAccount)=> [...account.notifications]
     .sort((a, b) =>
       (new Date(b.created_at)).getTime() - (new Date(a.created_at)).getTime()
     )

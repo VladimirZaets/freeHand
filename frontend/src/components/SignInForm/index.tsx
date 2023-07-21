@@ -16,7 +16,8 @@ import SocialAuthProviders, {AuthProvidersType} from "../SocialAuthProviders";
 
 const validationSchema = {
   email: string().email().required(),
-  password: string().min(8).required()
+  password: string().min(8).required(),
+  "g-recaptcha-response": string()
 };
 
 const SigninForm = (
@@ -26,12 +27,14 @@ const SigninForm = (
     heading,
     createAccountLink,
     forgotPasswordLink,
+    captcha,
   }: {
     socialAuthProvidersData: AuthProvidersType,
     signinHandler: SigninHandlerType,
     heading?: string
     createAccountLink?: CreateAccountLinkType,
     forgotPasswordLink?: ForgotPasswordLinkType,
+    captcha?: React.ReactNode | null,
   }) => {
   const [fields, setFields] = useState<Fields>({email: '', password: ''})
   const [validation, setValidation] = useState<Validation>({email: true, password: true})
@@ -64,6 +67,9 @@ const SigninForm = (
 
   return (
     <>
+      {
+        captcha || null
+      }
       {
         heading && <Box className={styles['signin-form-title']} sx={{mb: 3}}>
           {
@@ -167,6 +173,13 @@ const SigninForm = (
           createAccountLink && createAccountLink.position === 'bottom' && getCreateAccountLink(createAccountLink)
         }
       </Box>
+      {
+        captcha && <Box sx={{fontSize: "12px", display: "inline-block", mt:2}}>
+          This site is protected by reCAPTCHA and the Google&nbsp;
+          <a href="https://policies.google.com/privacy">Privacy Policy</a> and&nbsp;
+          <a href="https://policies.google.com/terms">Terms of Service</a> apply.
+        </Box>
+      }
     </>
   )
 };

@@ -4,6 +4,7 @@ import { getUser, getNotifications, updateNotificationStorage } from './actions'
 import { INotification } from '../../components/Notification';
 //@ts-ignore
 import { IAccount } from './reducer';
+import Localstorage from "../../localstorage";
 
 const initialState: IAccount = {
   notifications: []
@@ -24,6 +25,7 @@ export const accountSlice = createSlice({
       ]
     },
     resetUser(state) {
+      Localstorage.removeUser();
       state.user = undefined;
     }
   },
@@ -36,7 +38,7 @@ export const accountSlice = createSlice({
 })
 
 const getNotificationsCb = (state:IAccount, action:any) => {
-  state.notifications = action.payload || [];
+  state.notifications = action.payload?.body || [];
 }
 
 const updateNotificationStorageCb = (state:IAccount, action:any) => {

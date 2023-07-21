@@ -3,7 +3,6 @@ package store
 import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"log"
 	"time"
 )
 
@@ -58,7 +57,7 @@ func (n *NotificationService) List(id string) ([]Notification, error) {
 	for rows.Next() {
 		err := rows.StructScan(&notification)
 		if err != nil {
-			log.Fatalln(err)
+			return result, err
 		}
 		result = append(result, notification)
 	}
@@ -99,7 +98,7 @@ func (n *NotificationService) getCreateSqlStatement() string {
 
 func (n *NotificationService) getUpdateSqlStatement() string {
 	return fmt.Sprintf(
-		"UPDATE %s SET is_read=:is_read WHERE :id=:id",
+		"UPDATE %s SET is_read=:is_read WHERE id=:id",
 		n.table,
 	)
 }
