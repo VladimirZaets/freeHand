@@ -37,7 +37,7 @@ const Login = () => {
           captcha={<ReCAPTCHA
             ref={recaptchaRef as any}
             size="invisible"
-            sitekey="6LfE69YmAAAAAESDUjPk9DBCpNcmgN3Nu-7KwjJ9"
+            sitekey=""
           />}
           socialAuthProvidersData={socialMediaOptionsState}
           signinHandler={handleSubmit}
