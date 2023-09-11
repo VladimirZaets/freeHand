@@ -1,0 +1,4 @@
+\c freehands;
+GRANT ALL PRIVILEGES ON DATABASE freehands TO freehands;
+CREATE SCHEMA api AUTHORIZATION freehands;
+GRANT ALL PRIVILEGES ON SCHEMA api TO freehands;

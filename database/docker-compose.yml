@@ -1,0 +1,45 @@
+version: "3.1"
+
+services:
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: "freehands-db"
+    hostname: "freehands-db"
+    restart: always
+    ports:
+      - 5432:5432
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_APP_USER} -d ${POSTGRES_DB}'"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  migrate:
+    image: migrate/migrate:v4.15.2
+    container_name: "freehands-migrate"
+    hostname: "freehands-migrate"
+    profiles: ["tools"]
+    env_file:
+      - .env
+    volumes:
+      - ./migration:/migrations
+    entrypoint:
+      [
+        "migrate",
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://${POSTGRES_APP_USER}:${POSTGRES_APP_USER_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable&search_path=${POSTGRES_SEARCH_PATH}",
+      ]
+    command: [ "up" ]
+    depends_on:
+      - db
+    restart: on-failure
