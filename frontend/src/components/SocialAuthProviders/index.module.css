@@ -1,20 +1,20 @@
-.signin-form-social-media {
+.form-social-media {
     display: flex;
     align-items: center;
 }
 
-.signin-form-social-media > p {
+.form-social-media > p {
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 100;
 }
 
-.signin-form-icons-container {
+.form-icons-container {
     display: flex;
     align-items: center;
 }
 
-.signin-form-icons-container svg {
+.form-icons-container svg {
     margin: 0 5px;
 }

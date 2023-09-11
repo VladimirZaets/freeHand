@@ -2,7 +2,9 @@ const paths = {
   account: {
     notifications: '/user/notifications',
     notification: '/user/notification',
-    password: '/account/password',
+    passwordCreate: '/user/password/create',
+    passwordForgot: '/account/password/forgot',
+    passwordReset: '/account/password/reset',
     user: '/user',
   },
   auth: {

@@ -1,6 +1,8 @@
 import {createAsyncThunk} from '@reduxjs/toolkit';
 //@ts-ignore
 import {CreatePasswordParams} from '../../components/CreatePasswordForm';
+//@ts-ignore
+import {ForgotPasswordParams} from '../../components/ForgotPasswordForm';
 import paths from '../../api/paths';
 //@ts-ignore
 import request, {responseType} from "../../api/request";
@@ -81,12 +83,53 @@ export const updateNotificationStorage = createAsyncThunk(
   }
 )
 
-export const createPassword = createAsyncThunk(
-  paths.account.password,
+export const createPassword = (data: CreatePasswordParams) => {
+  return async (dispatch: any) => {
+    let response:responseType;
+    response = await dispatch(createPasswordAsync(data)).unwrap();
+    if (response.ok) {
+      dispatch(createAlert({
+        type: 'success',
+        message: 'Password successfully created.'
+      }));
+      return Promise.resolve(response);
+    }
+    return Promise.reject(response);
+  }
+}
+
+export const createPasswordAsync = createAsyncThunk(
+  paths.account.passwordCreate,
   async (data: CreatePasswordParams) => {
     let response:responseType;
     try {
-      response = await request.post(paths.account.password, data);
+      response = await request.post(paths.account.passwordCreate, data);
+    }  catch (e) {
+      return e;
+    }
+    return response;
+  }
+)
+
+export const forgotPassword = createAsyncThunk(
+  paths.account.passwordForgot,
+  async (data: ForgotPasswordParams) => {
+    let response:responseType;
+    try {
+      response = await request.post(paths.account.passwordForgot, data);
+    }  catch (e) {
+      return e;
+    }
+    return response;
+  }
+)
+
+export const resetPassword = createAsyncThunk(
+  paths.account.passwordReset,
+  async (data: ForgotPasswordParams) => {
+    let response:responseType;
+    try {
+      response = await request.post(paths.account.passwordReset, data);
     }  catch (e) {
       return e;
     }

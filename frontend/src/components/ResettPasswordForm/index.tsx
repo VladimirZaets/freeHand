@@ -5,32 +5,33 @@ import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import styles from './index.module.css';
 //@ts-ignore
-import {Common, CreatePasswordParams, Error, Fields} from './index';
+import {Common, ResetPasswordParams, Error, Fields} from './index';
 import React, {FormEvent, useState} from 'react';
 //@ts-ignore
 import {validationFields, validationSchema, ValidationSchemaType, ValidationType,} from '../SignupForm/validation';
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 
-const createPasswordFields = {
+const resetPasswordFields = {
+  oldPassword: '',
   password: '',
 }
 
-const CreatePasswordForm = (
+const ResetPasswordForm = (
   {
-    createPasswordHandler,
+    handler,
     onFormChange,
     error,
     captcha
   }: {
-    createPasswordHandler(createPasswordHandler: CreatePasswordParams): void,
+    handler(handler: ResetPasswordParams): void,
     onFormChange: (e?: any) => void;
     error?: Error,
     captcha?: React.ReactNode | null,
   }) => {
-  const [fields, setFields] = useState<Fields>(createPasswordFields)
+  const [fields, setFields] = useState<Fields>(resetPasswordFields)
   const [validation, setValidation] = useState<ValidationType>(validationFields)
-  const [common, setCommon] = useState<Common>({isSubmitting: false, showPassword: false, passwordConfirm: ''})
+  const [common, setCommon] = useState<Common>({showPassword: false, isSubmitting: false, passwordConfirm: ''})
   const validateField = (data: Fields) => {
     return async (field: string) => {
       const isValid = {
@@ -62,7 +63,7 @@ const CreatePasswordForm = (
 
     if (isValid) {
       setCommon((common: Common) => ({...common, isSubmitting: true}));
-      await createPasswordHandler(fields);
+      await handler(fields);
       setCommon((common: Common) => ({...common, isSubmitting: false}));
     }
   }
@@ -76,7 +77,7 @@ const CreatePasswordForm = (
         <Box className={styles['form-title']} sx={{mb: 3}}>
           {
             <Typography variant="h3" component="h3">
-              Create Password
+              Reset Password
             </Typography>
           }
         </Box>
@@ -89,14 +90,33 @@ const CreatePasswordForm = (
         >
           {
             error.error &&
-            <Typography variant="body1" my={2} className={styles['error-container']}>
+            <Typography variant="body1" my={2} className={styles['sign-in-error-container']}>
               {error.message}
             </Typography>
           }
           <TextField
+            id="old-password"
+            name="old=password"
+            label="Current Password"
+            required
+            type={common.showPassword ? "text" : "password"}
+            fullWidth
+            autoComplete="password"
+            value={fields.oldPassword}
+            margin="normal"
+            disabled={common.isSubmitting}
+            error={!validation.password.state}
+            helperText={!validation.password.state ? validation.password.message : ''}
+            onBlur={() => validateField(fields)('oldPassword')}
+            onChange={(e) => {
+              onFormChange(e);
+              setFields((fields: ResetPasswordParams) => ({...fields, oldPassword: e.target.value}))
+            }}
+          />
+          <TextField
             id="password"
             name="password"
-            label="Password"
+            label="New Password"
             required
             type={common.showPassword ? "text" : "password"}
             fullWidth
@@ -109,13 +129,13 @@ const CreatePasswordForm = (
             onBlur={() => validateField(fields)('password')}
             onChange={(e) => {
               onFormChange(e);
-              setFields((fields: CreatePasswordParams) => ({...fields, password: e.target.value}))
+              setFields((fields: ResetPasswordParams) => ({...fields, password: e.target.value}))
             }}
           />
           <TextField
             id="confirm-password"
             name="confirm-password"
-            label="Confirm password"
+            label="Confirm new password"
             required
             type={common.showPassword ? "text" : "password"}
             fullWidth
@@ -166,4 +186,4 @@ const CreatePasswordForm = (
   )
 };
 
-export default CreatePasswordForm;
+export default ResetPasswordForm;

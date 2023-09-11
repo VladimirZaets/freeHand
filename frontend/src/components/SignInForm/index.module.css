@@ -1,6 +1,6 @@
-.signin-form-title > h3 {
+.form-title > h3 {
     letter-spacing: 2px;
 }
-.sign-in-error-container {
+.error-container {
     color: var(--fh-palette-error-main);
 }

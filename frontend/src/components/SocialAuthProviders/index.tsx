@@ -14,11 +14,11 @@ export const FROM_OPTIONS = {
 
 const SocialAuthProviders = ({data}: {data:AuthProvidersType}) => {
   return (
-    <Box sx={{ my: 1 }} className={styles['signin-form-social-media']}>
+    <Box sx={{ my: 1 }} className={styles['form-social-media']}>
       <Typography>
         Login with:
       </Typography>
-      <Box className={styles['signin-form-icons-container']}>
+      <Box className={styles['form-icons-container']}>
         {bindSocialtoNodes(data)}
       </Box>
     </Box>

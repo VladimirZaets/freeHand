@@ -174,7 +174,7 @@ export default function Header({toggleSideMenu}: HeaderProps) {
         captcha={<ReCAPTCHA
           ref={recaptchaRef as any}
           size="invisible"
-          sitekey=""
+          sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY as string}
         />}
         anchorEl={anchorEl}
         forgotPasswordLink={{

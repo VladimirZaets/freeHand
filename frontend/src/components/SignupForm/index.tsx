@@ -94,8 +94,8 @@ const SignupForm = (
       {
         captcha || null
       }
-      <Box sx={{ p: 5, mx: "auto", my: 10 }} className={styles['signin-form-container']}>
-        <Box className={styles['signin-form-title']} sx={{ mb: 3 }}>
+      <Box sx={{ p: 5, mx: "auto", my: 10 }} className={styles['form-container']}>
+        <Box className={styles['form-title']} sx={{ mb: 3 }}>
           <Typography variant="h3" component="h3">
             Sign Up To Continue
           </Typography>

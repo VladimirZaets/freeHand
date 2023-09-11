@@ -3,6 +3,7 @@ const routes = {
   pathname: {
     passwordCreate: 'password/create',
     passwordForgot: 'password/forgot',
+    passwordReset: 'password/reset',
     profile: 'profile',
   }
 }

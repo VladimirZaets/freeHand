@@ -1,4 +1,4 @@
-.signin-form-container {
+.form-container {
     margin: 100px auto;
     width: 80%;
     border: 1px solid var(--fh-palette-borders);
@@ -7,7 +7,7 @@
     max-width: 850px;
 }
 
-.signin-form-title > h3 {
+.form-title > h3 {
     letter-spacing: 2px;
 }
 

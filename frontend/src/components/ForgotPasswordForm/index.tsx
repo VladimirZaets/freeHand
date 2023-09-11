@@ -5,32 +5,30 @@ import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import styles from './index.module.css';
 //@ts-ignore
-import {Common, CreatePasswordParams, Error, Fields} from './index';
+import {Common, FortgotPasswordParams, Error, Fields} from './index';
 import React, {FormEvent, useState} from 'react';
 //@ts-ignore
 import {validationFields, validationSchema, ValidationSchemaType, ValidationType,} from '../SignupForm/validation';
-import Checkbox from "@mui/material/Checkbox";
-import FormControlLabel from "@mui/material/FormControlLabel";
 
 const createPasswordFields = {
   password: '',
 }
 
-const CreatePasswordForm = (
+const ForgotPasswordForm = (
   {
-    createPasswordHandler,
+    handler,
     onFormChange,
     error,
     captcha
   }: {
-    createPasswordHandler(createPasswordHandler: CreatePasswordParams): void,
+    handler(h: FortgotPasswordParams): void,
     onFormChange: (e?: any) => void;
     error?: Error,
     captcha?: React.ReactNode | null,
   }) => {
   const [fields, setFields] = useState<Fields>(createPasswordFields)
   const [validation, setValidation] = useState<ValidationType>(validationFields)
-  const [common, setCommon] = useState<Common>({isSubmitting: false, showPassword: false, passwordConfirm: ''})
+  const [common, setCommon] = useState<Common>({isSubmitting: false})
   const validateField = (data: Fields) => {
     return async (field: string) => {
       const isValid = {
@@ -62,7 +60,7 @@ const CreatePasswordForm = (
 
     if (isValid) {
       setCommon((common: Common) => ({...common, isSubmitting: true}));
-      await createPasswordHandler(fields);
+      await handler(fields);
       setCommon((common: Common) => ({...common, isSubmitting: false}));
     }
   }
@@ -76,7 +74,7 @@ const CreatePasswordForm = (
         <Box className={styles['form-title']} sx={{mb: 3}}>
           {
             <Typography variant="h3" component="h3">
-              Create Password
+              Forgot Password
             </Typography>
           }
         </Box>
@@ -89,57 +87,29 @@ const CreatePasswordForm = (
         >
           {
             error.error &&
-            <Typography variant="body1" my={2} className={styles['error-container']}>
+            <Typography variant="body1" my={2} className={styles['sign-in-error-container']}>
               {error.message}
             </Typography>
           }
           <TextField
-            id="password"
-            name="password"
-            label="Password"
+            id="email"
+            name="email"
+            label="Email"
             required
-            type={common.showPassword ? "text" : "password"}
+            type="text"
             fullWidth
-            autoComplete="password"
-            value={fields.password}
+            autoComplete="email"
+            value={fields.email}
             margin="normal"
             disabled={common.isSubmitting}
-            error={!validation.password.state}
-            helperText={!validation.password.state ? validation.password.message : ''}
-            onBlur={() => validateField(fields)('password')}
+            error={!validation.email.state}
+            helperText={!validation.email.state ? validation.email.message : ''}
+            onBlur={() => validateField(common as any)('email')}
             onChange={(e) => {
               onFormChange(e);
-              setFields((fields: CreatePasswordParams) => ({...fields, password: e.target.value}))
+              setFields((fields:Fields) => ({...fields, email: e.target.value}))
             }}
           />
-          <TextField
-            id="confirm-password"
-            name="confirm-password"
-            label="Confirm password"
-            required
-            type={common.showPassword ? "text" : "password"}
-            fullWidth
-            autoComplete="confirm-password"
-            value={common.passwordConfirm}
-            margin="normal"
-            disabled={common.isSubmitting}
-            error={!validation.passwordConfirm.state}
-            helperText={!validation.passwordConfirm.state ? validation.passwordConfirm.message : ''}
-            onBlur={() => validateField(common as any)('passwordConfirm')}
-            onChange={(e) => {
-              onFormChange(e);
-              setCommon((fields: Common) => ({...fields, passwordConfirm: e.target.value}))
-            }}
-          />
-          <FormControlLabel control={
-            <Checkbox
-              disabled={common.isSubmitting}
-              checked={common.showPassword}
-              onChange={(e) => {
-                setCommon((fields: Common) => ({...fields, showPassword: !fields.showPassword}))
-              }}
-            />
-          } label="Show password"/>
           <Button
             type="submit"
             fullWidth
@@ -150,7 +120,7 @@ const CreatePasswordForm = (
             {
               common.isSubmitting ?
                 <CircularProgress size={24}/> :
-                "Create"
+                "Send"
             }
           </Button>
         </Box>
@@ -166,4 +136,4 @@ const CreatePasswordForm = (
   )
 };
 
-export default CreatePasswordForm;
+export default ForgotPasswordForm;

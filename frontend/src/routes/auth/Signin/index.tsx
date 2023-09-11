@@ -31,13 +31,13 @@ const Login = () => {
 
   return <div className="login-content">
     <div className="signin-form">
-      <Box sx={{p: 5, mx: "auto", my: 10}} className={styles['signin-form-container']}>
+      <Box sx={{p: 5, mx: "auto", my: 10}} className={styles['form-container']}>
         <SignInForm
           heading="Sign In To Continue"
           captcha={<ReCAPTCHA
             ref={recaptchaRef as any}
             size="invisible"
-            sitekey=""
+            sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY as string}
           />}
           socialAuthProvidersData={socialMediaOptionsState}
           signinHandler={handleSubmit}

@@ -1,7 +1,7 @@
 //@ts-ignore
-import CreatePasswordForm, {CreatePasswordParams, Error} from "../../../components/CreatePasswordForm/index";
+import ResetPasswordForm, {CreatePasswordParams, Error} from "../../../components/ResettPasswordForm/index";
 import { useAppDispatch } from '../../../store';
-import { createPassword } from "../../../redux/account/actions";
+import {resetPassword} from "../../../redux/account/actions";
 import React, { useState } from "react";
 import Box from '@mui/material/Box';
 
@@ -22,14 +22,14 @@ const Login = () => {
     const current = recaptchaRef.current as any;
     data["g-recaptcha-response"] = await current.executeAsync();
     try {
-      await dispatch(createPassword(data)) as any;
+      await dispatch(resetPassword(data)) as any;
       navigate('/');
     } catch (error: responseType) {
       window.scrollTo(0, 0);
       current.reset();
       let message: string
       error.status === RequestStatusCodes.CONFLICT ?
-        message = `Password already exists. Go to <a href="${paths.account.passwordReset}">reset</a> password page to reset password.` :
+        message = `User with email "${data.email}" already exists. Go to <a href="${paths.auth.signin}">login</a>.` :
         message = 'Service is unavailable. Please reload the page or try again later.';
       setError((error:Error) => ({...error, 'error': true, message}))
     }
@@ -40,8 +40,8 @@ const Login = () => {
   }
 
   return <Box sx={{p: 5, mx: "auto", my: 10}} className={styles['form-container']}>
-    <CreatePasswordForm
-      createPasswordHandler={handleSubmit}
+    <ResetPasswordForm
+      handler={handleSubmit}
       onFormChange={onFormChange}
       error={error}
       captcha={<ReCAPTCHA

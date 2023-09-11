@@ -71,7 +71,7 @@ const SigninForm = (
         captcha || null
       }
       {
-        heading && <Box className={styles['signin-form-title']} sx={{mb: 3}}>
+        heading && <Box className={styles['form-title']} sx={{mb: 3}}>
           {
             <Typography variant="h3" component="h3">
               {heading}
@@ -84,7 +84,7 @@ const SigninForm = (
       }
       {
         !heading && createAccountLink && createAccountLink.position === 'top' &&
-        <Box className={styles['signin-form-title']} sx={{mb: 3}}>
+        <Box className={styles['form-title']} sx={{mb: 3}}>
           {getCreateAccountLink(createAccountLink)}
         </Box>
       }
