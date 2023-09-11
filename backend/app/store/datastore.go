@@ -69,9 +69,10 @@ func (d *DataStore) Connect() error {
 	db, err := sqlx.Connect(d.driver, d.connString)
 
 	if err != nil {
-		log.Printf("[ERROR] DB connection failed: %+v", err)
+		log.Printf("[ERROR] DB connection failed: %+v. Connection string: %s", err, d.connString)
 		return err
 	}
+	fmt.Println("DB Connection is setup")
 	d.conn = db
 	d.user.SetConnection(db)
 	d.notification.SetConnection(db)

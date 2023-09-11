@@ -37,6 +37,10 @@ type RecaptchaParams struct {
 	GRecaptchaResponse string `json:"g-recaptcha-response"`
 }
 
+func (c *Recaptcha) IsEnabled() bool {
+	return c.secret != ""
+}
+
 func (c *Recaptcha) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		if !c.isRecaptchaRequired(r.URL.Path) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/VladimirZaets/freehands/backend/app/api"
-	"github.com/VladimirZaets/freehands/backend/app/middleware"
 	"github.com/VladimirZaets/freehands/backend/app/services/auth"
 	"github.com/VladimirZaets/freehands/backend/app/services/mail"
 	"github.com/VladimirZaets/freehands/backend/app/store"
@@ -129,6 +128,7 @@ func (s *ServerCommand) newServerApp(ctx context.Context) (*serverApp, error) {
 	})
 
 	authenticator := auth.GetAuthenticator(dataService, s.APIUrl, s.Address, s.getJwtCookieDomain(), s.Secrets.Auth)
+
 	mailService, err := mail.NewMail(mail.MailParams{
 		Host:         s.SMTP.Host,
 		Port:         s.SMTP.Port,
@@ -155,15 +155,9 @@ func (s *ServerCommand) newServerApp(ctx context.Context) (*serverApp, error) {
 		CredentialChecker: auth.NewCredentialChecker(dataService),
 		Secrets: api.Secrets{
 			EmailVerification: s.Secrets.Email,
+			Captcha:           s.Secrets.Captcha,
 		},
-		CaptchaMiddleware: middleware.NewRecaptcha(
-			s.Secrets.Captcha,
-			s.Client.Domain,
-			[]string{
-				"/api/v1/auth/local/login",
-				"/api/v1/auth/local/callback",
-			},
-		),
+		ClientDomain: s.Client.Domain,
 	})
 
 	err = s.addAuthProviders(authenticator, srv)

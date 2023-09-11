@@ -43,6 +43,10 @@ type TypeResolving struct {
 	Dob string `json:"dateOfBirth"`
 }
 
+type Password struct {
+	Password string `json:"password"`
+}
+
 type VerificationToken struct {
 	Token string `json:"token"`
 }
@@ -92,7 +96,7 @@ func (a *AccountCtrl) EmailVerification(w http.ResponseWriter, r *http.Request) 
 	rest.RespJSON(w, http.StatusOK, map[string]interface{}{"message": "Ok"})
 }
 
-func (a *AccountCtrl) createUser(w http.ResponseWriter, r *http.Request) {
+func (a *AccountCtrl) CreateUser(w http.ResponseWriter, r *http.Request) {
 	u, err := ioutil.ReadAll(r.Body)
 	var user store.User
 	if err := json.Unmarshal(u, &user); err != nil {
@@ -136,4 +140,58 @@ func (a *AccountCtrl) GetUserInfo(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[ERROR] Marshalling claim %+v", err)
 	}
 	_, err = w.Write(b)
+}
+
+func (a *AccountCtrl) CreatePassword(w http.ResponseWriter, r *http.Request) {
+	a.passwordUpdate(w, r, false)
+}
+
+func (a *AccountCtrl) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	a.passwordUpdate(w, r, true)
+}
+
+func (a *AccountCtrl) passwordUpdate(w http.ResponseWriter, r *http.Request, required bool) {
+	claims, _, err := a.JWTService.Get(r)
+	if err != nil {
+		log.Printf("[ERROR] Getting claim %+v", err)
+		rest.RespJSON(w, http.StatusBadRequest, map[string]interface{}{"message": "Bad request"})
+		return
+	}
+	var p Password
+	err = json.NewDecoder(r.Body).Decode(&p)
+	if err != nil {
+		log.Printf("[ERROR] %+v", err)
+		rest.RespJSON(w, http.StatusBadRequest, map[string]interface{}{"message": "Bad request"})
+		return
+	}
+
+	if p.Password == "" {
+		log.Printf("[ERROR] Password is empty")
+		rest.RespJSON(w, http.StatusBadRequest, map[string]interface{}{"message": "Password is empty"})
+		return
+	}
+
+	usr, err := a.DataService.User().GetById(claims.User.ID)
+
+	if err != nil {
+		log.Printf("[ERROR] Getting user %+v", err)
+		rest.RespJSON(w, http.StatusInternalServerError, map[string]interface{}{"message": "Something went wrong"})
+		return
+	}
+	if usr.Password != "" && required {
+		log.Printf("[ERROR] Password already exists")
+		rest.RespJSON(w, http.StatusConflict, map[string]interface{}{"message": "Password already exists"})
+		return
+	}
+	updateUser := store.User{
+		Email:    usr.Email,
+		Password: p.Password,
+	}
+	err = a.DataService.User().Update(updateUser)
+	if err != nil {
+		log.Printf("[ERROR] Updating user %+v", err)
+		rest.RespJSON(w, http.StatusInternalServerError, map[string]interface{}{"message": "Something went wrong"})
+		return
+	}
+	rest.RespJSON(w, http.StatusOK, map[string]interface{}{"message": "Ok"})
 }

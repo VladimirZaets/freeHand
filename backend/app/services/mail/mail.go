@@ -60,7 +60,7 @@ func (s *Mail) SendTemplate(template string, data interface{}, to string, subjec
 	m.SetBody("text/html", body.String())
 	m.AddAlternative("text/plain", html2text.HTML2Text(body.String()))
 	if err := s.d.DialAndSend(m); err != nil {
-		fmt.Println(err)
+		fmt.Println(err, "PORT", s.d.Port, "HOST", s.d.Host)
 		return err
 	}
 	return nil

@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"fmt"
+	m "github.com/VladimirZaets/freehands/backend/app/middleware"
 	"github.com/VladimirZaets/freehands/backend/app/services/auth"
 	"github.com/VladimirZaets/freehands/backend/app/services/mail"
+	"github.com/VladimirZaets/freehands/backend/app/services/rest"
 	"github.com/VladimirZaets/freehands/backend/app/store"
 	log "github.com/go-pkgz/lgr"
 	"net/http"
@@ -24,14 +26,11 @@ type ctrl struct {
 	Notifications *NotificationsCtrl
 }
 
-type MiddlewareManager interface {
-	Middleware(http.Handler) http.Handler
-}
-
 type Secrets struct {
 	EmailVerification string
 	PasswordReset     string
 	Auth              string
+	Captcha           string
 }
 
 type RestParams struct {
@@ -44,11 +43,11 @@ type RestParams struct {
 	Version           string
 	Authenticator     auth.Manager
 	DataService       store.EntityMapper
-	CaptchaMiddleware MiddlewareManager
 	EmailService      mail.Emailer
 	AuthHandlers      *auth.Handlers
 	CredentialChecker *auth.CredentialChecker
 	Secrets           Secrets
+	ClientDomain      string
 }
 
 type Rest struct {
@@ -65,11 +64,23 @@ type Rest struct {
 	Ctrl              ctrl
 	AuthHandlers      *auth.Handlers
 	CredentialChecker *auth.CredentialChecker
-	Captcha           MiddlewareManager
+	Captcha           *m.Recaptcha
 	EmailService      mail.Emailer
 }
 
 func NewRest(params RestParams) *Rest {
+	var captcha *m.Recaptcha
+	if params.Secrets.Captcha != "" {
+		captcha = m.NewRecaptcha(
+			params.Secrets.Captcha,
+			params.ClientDomain,
+			[]string{
+				"/api/v1/auth/local/login",
+				"/api/v1/auth/local/callback",
+			},
+		)
+	}
+
 	return &Rest{
 		AppName:          params.AppName,
 		AllowedHosts:     params.AllowedHosts,
@@ -94,10 +105,10 @@ func NewRest(params RestParams) *Rest {
 		},
 		httpServer:        params.httpServer,
 		httpsServer:       params.httpsServer,
-		Captcha:           params.CaptchaMiddleware,
 		AuthHandlers:      params.AuthHandlers,
 		CredentialChecker: params.CredentialChecker,
 		EmailService:      params.EmailService,
+		Captcha:           captcha,
 	}
 }
 
@@ -165,10 +176,17 @@ func (s *Rest) routes() chi.Router {
 	authMiddleware := s.Authenticator.Middleware()
 
 	router.Route("/api/v1", func(rapi chi.Router) {
+		rapi.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			fmt.Println("Not found handler")
+			rest.RespJSON(w, http.StatusNotFound, map[string]interface{}{"message": "not found"})
+		})
+
 		rapi.Group(func(ropen chi.Router) {
 			ropen.Use(middleware.Timeout(30 * time.Second))
 			ropen.Use(tollbooth_chi.LimitHandler(tollbooth.NewLimiter(10, nil)))
-			ropen.Use(s.Captcha.Middleware)
+			if s.Captcha != nil {
+				ropen.Use(s.Captcha.Middleware)
+			}
 			ropen.Mount("/auth", authHandler)
 			ropen.Post("/auth/local/confirm", s.Ctrl.Account.EmailVerification)
 		})
@@ -180,6 +198,8 @@ func (s *Rest) routes() chi.Router {
 			ropen.Use(middleware.Timeout(30 * time.Second))
 			ropen.Use(tollbooth_chi.LimitHandler(tollbooth.NewLimiter(10, nil)))
 			ropen.Use(authMiddleware.Auth, middleware.NoCache)
+			ropen.Post("/user/password/create", s.Ctrl.Account.CreatePassword)
+			ropen.Post("/user/password/update", s.Ctrl.Account.ResetPassword)
 			ropen.Get("/user", s.Ctrl.Account.GetUserInfo)
 			ropen.Get("/user/notifications", s.Ctrl.Notifications.List)
 			ropen.Put("/user/notification", s.Ctrl.Notifications.Update)

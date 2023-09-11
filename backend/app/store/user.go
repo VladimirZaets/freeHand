@@ -160,6 +160,10 @@ func (s *UserService) GetById(id string) (User, error) {
 }
 
 func (s *UserService) Update(user User) error {
+	if user.Password != "" {
+		user.Password = s.HashUserPassword(user.Password)
+	}
+
 	_, err := s.conn.NamedExec(s.getUpdateSqlStatement(user), user)
 	if err != nil {
 		fmt.Printf("error updating user: %s", err)
