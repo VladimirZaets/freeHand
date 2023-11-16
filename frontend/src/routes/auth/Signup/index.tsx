@@ -6,6 +6,8 @@ import {signup} from "../../../redux/auth/actions";
 import React, { useState } from "react";
 import {getAuthProvidersSelector} from "../../../redux/auth/selectors";
 import ReCAPTCHA from "react-google-recaptcha";
+import {format, parseISO} from "date-fns";
+
 //@ts-ignore
 import {responseType, RequestStatusCodes} from "../../../api/request";
 import paths from "../../../api/paths";
@@ -23,10 +25,13 @@ const Signup = () => {
   const recaptchaRef = React.createRef();
   const handleSubmit = async (data:SignupParams) => {
     const current = recaptchaRef.current as any;
-
-    data["g-recaptcha-response"] = await current.executeAsync();
+    const d = {...data}
+    if (d.dateOfBirth) {
+      d.dob = format(parseISO(format(data.dateOfBirth, "yyyy-MM-dd"), ), "yyyy-MM-dd'T'HH:mm:ss.SSSxxx")
+    }
+    d["g-recaptcha-response"] = await current.executeAsync();
     try {
-      await dispatch(signup(data)) as any;
+      await dispatch(signup(d)) as any;
       navigate('/');
     } catch (error:responseType) {
       window.scrollTo(0, 0);

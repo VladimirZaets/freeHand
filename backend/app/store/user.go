@@ -19,7 +19,7 @@ type User struct {
 	Email       string    `json:"email"`
 	Password    string    `json:"password"`
 	AvatarUrl   string    `json:"avatar_url" db:"avatar_url"`
-	PrimaryType string    `json:"primary_type" default:"customer" db:"primary_type"`
+	PrimaryType string    `json:"primaryAccountType" default:"customer" db:"primary_type"`
 	Verified    bool      `json:"verified" default:"false"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`

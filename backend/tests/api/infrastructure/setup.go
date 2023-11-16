@@ -79,17 +79,6 @@ func (s *Setup) Database(cp *ContainerParam) (*Database, error) {
 }
 
 func (s *Setup) Start() (*Setup, error) {
-	//nc, err := testcontainers.GenericNetwork(s.context, testcontainers.GenericNetworkRequest{
-	//	NetworkRequest: testcontainers.NetworkRequest{
-	//		Name:           s.network,
-	//		CheckDuplicate: true,
-	//	},
-	//})
-	//if err != nil {
-	//	return nil, err
-	//}
-	//s.networkInstance = nc
-
 	for folder, paths := range s.files {
 		f := fmt.Sprintf("%s/%s", s.temporaryFolder, folder)
 		err := os.MkdirAll(f, os.ModePerm)
@@ -123,14 +112,6 @@ func (s *Setup) Start() (*Setup, error) {
 			}
 		}
 	}
-
-	//paths := []string{s.GetMigrationPath(), s.GetConfigPath()}
-	//for _, path := range paths {
-	//	err := os.MkdirAll(path, os.ModePerm)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
 
 	return s, nil
 }

@@ -2,48 +2,60 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
+	"github.com/go-pkgz/auth/token"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"testing"
 )
 
 type dataStruct struct {
-	Initialized bool              `default:"false"`
-	Success     map[string]string `json:"success"`
+	Initialized bool `default:"false"`
+	Request     request
+	Response    response
+}
+
+type request struct {
+	Success map[string]string `json:"success"`
+}
+
+type response struct {
+	Success token.User `json:"success"`
 }
 
 var userCreateData dataStruct
-var authCookie *http.Cookie
 
-func GetUserCreateData(t *testing.T) *dataStruct {
+func GetUserCreateData() (*dataStruct, error) {
 	if userCreateData.Initialized {
-		return &userCreateData
+		return &userCreateData, nil
 	}
 
 	data, err := os.Open("./data/user_create.json")
 	if err != nil {
-		assert.NoError(t, err, "Read data file")
+		return nil, err
 	}
 	dataBytes, err := io.ReadAll(data)
 	if err != nil {
-		assert.NoError(t, err, "Read data file")
+		return nil, err
 	}
 
 	dataJson := dataStruct{
-		Success: map[string]string{},
+		Request: request{
+			Success: map[string]string{},
+		},
+		Response: response{
+			Success: token.User{},
+		},
 	}
 	err = json.Unmarshal(dataBytes, &dataJson)
 	if err != nil {
-		assert.NoError(t, err, "json.Unmarshal()")
+		return nil, err
 	}
 	userCreateData = dataJson
 	userCreateData.Initialized = true
 
-	return &userCreateData
+	return &userCreateData, nil
 }
 
 func ParseAuthCookie(s string, name string) *http.Cookie {
